@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geometrikalkulator for motorsykkel</title>
+<script type="text/javascript" src="wz_jsgraphics.js"></script>
+<style>
+:root {
+  --primary: #1a1a1a;
+  --accent: #ff6b00;
+  --bg-light: #fafafa;
+  --border: #e0e0e0;
+  --shadow: rgba(0,0,0,0.08);
+  --text-dark: #2c3e50;
+  --text-light: #7f8c8d;
+}
+
+body { 
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+  margin: 0; 
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.container { 
+  max-width: 1400px; 
+  margin: 0 auto; 
+  background: white; 
+  padding: 40px;
+  border-radius: 16px; 
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+h1 { 
+  color: var(--primary);
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.8px;
+  background: linear-gradient(135deg, var(--primary), #34495e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.lang-toggle { 
+  float: right; 
+  margin-top: -50px;
+}
+
+.lang-toggle button { 
+  padding: 10px 20px;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: white;
+  margin-left: 8px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  color: var(--text-dark);
+}
+
+.lang-toggle button:hover { 
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.lang-toggle button.active { 
+  background: linear-gradient(135deg, var(--accent), #ff8800);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(255,107,0,0.3);
+}
+
+table { 
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+td { 
+  padding: 12px 8px;
+  vertical-align: middle;
+  color: var(--text-dark);
+  font-size: 0.95rem;
+}
+
+td:first-child {
+  font-weight: 500;
+}
+
+input[type="text"] { 
+  padding: 10px 12px;
+  width: 90px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,107,0,0.1);
+}
+
+input[readonly] { 
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+select { 
+  padding: 10px 12px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+hr { 
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 16px 0;
+  opacity: 0.5;
+}
+
+.hint { 
+  color: var(--text-light);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+#test { 
+  border: 3px solid var(--border);
+  margin-top: 30px;
+  background: linear-gradient(to bottom, #fafafa, #ffffff);
+  cursor: crosshair;
+  border-radius: 12px;
+  box-shadow: inset 0 2px 8px var(--shadow);
+  overflow: hidden;
+}
+
+.field-highlight { 
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2) !important;
+  border: 2px solid var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255,107,0,0.2) !important;
+  transform: scale(1.02);
+}
+
+.edit-mode-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 10px 0;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(255,107,0,0.3);
+}
+
+.edit-mode-btn:hover {
+  background: #ff8533;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255,107,0,0.4);
+}
+
+.edit-mode-btn.active {
+  background: #27ae60;
+}
+
+#canvas-container {
+  position: relative;
+  display: inline-block;
+}
+
+.resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  display: none;
+  z-index: 1000;
+}
+
+.resize-handle.active {
+  display: block;
+}
+
+.draggable-overlay {
+  position: absolute;
+  border: 2px dashed var(--accent);
+  background: rgba(255,107,0,0.1);
+  cursor: move;
+  display: none;
+  z-index: 999;
+}
+
+.draggable-overlay.active {
+  display: block;
+}
+
+.draggable-overlay:hover {
+  background: rgba(255,107,0,0.2);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1 data-no="Geometrikalkulator for motorsykkel" data-en="Motorcycle Geometry Calculator">Geometrikalkulator for motorsykkel</h1>
+<div class="lang-toggle">
+  <button id="btnNo" class="active" onclick="setLang('no')">Norsk</button>
+  <button id="btnEn" onclick="setLang('en')">English</button>
+</div>
+
+<form action="#" name="form1" method="post">
+<table>
+  <tr>
+    <td width="240" data-no="Gaffeltype" data-en="Fork type">Gaffeltype</td>
+    <td width="185">
+      <select id="KTyyppi" name="KTyyppi" onchange="keulavaihdos();">
+        <option value="T" data-no="Teleskop" data-en="Telescopic">Teleskop</option>
+        <option value="S" data-no="Springer" data-en="Springer">Springer</option>
+      </select>
+    </td>
+    <td width="40"></td>
+    <td data-no="Vis detaljer" data-en="Show details">Vis detaljer<br><span class="hint" data-no="(tank, motor osv.)" data-en="(tank, engine etc.)">(tank, motor osv.)</span></td>
+    <td>
+      <select name="details" onchange="calculate(0);">
+        <option value="0" data-no="Nei" data-en="No">Nei</option>
+        <option value="1" data-no="Ja" data-en="Yes">Ja</option>
+      </select>
+    </td>
+  </tr>
+  <tr><td colspan="5"><hr></td></tr>
+  <tr>
+    <td data-no="Styreakselens høyde fra bakken" data-en="Steering axis height from ground">Styreakselens høyde fra bakken<br>
+      <span class="hint" data-no="(Målt fra toppen av T-stykket)" data-en="(Measured from top of triple clamp)">(Målt fra toppen av T-stykket)</span></td>
+    <td><input id="Yep" type="text" name="Yep" value="88" onkeyup="calculate(1);"> cm</td>
+    <td><strong data-no="eller" data-en="or">eller</strong></td>
+    <td data-no="Gaffellengde" data-en="Fork length">Gaffellengde<br>
+      <span class="hint" data-no="(Fra T-stykke til aksel)" data-en="(From triple clamp to axle)">(Fra T-stykke til aksel)</span></td>
+    <td><input id="k" type="text" name="k" value="0" onkeyup="calculate(2);"> cm</td>
+  </tr>
+  <tr>
+    <td data-no="Styrerørs rake (vinkel)" data-en="Steering head rake (angle)">Styrerørs rake (vinkel)</td>
+    <td><input id="RAKEep" type="text" name="RAKEep" value="41" onkeyup="calculate(0);"> °</td>
+    <td></td>
+    <td data-no="T-stykke vinkel" data-en="Triple clamp angle">T-stykke vinkel</td>
+    <td><input id="RAKEtk" type="text" name="RAKEtk" value="6" onkeyup="calculate(0);"> °</td>
+  </tr>
+  <tr id="springu" style="display:none;">
+    <td data-no="Nedre lenke lengde (Springer)" data-en="Lower link length (Springer)">Nedre lenke lengde (Springer)<br>
+      <span class="hint" data-no="(Avstand fra bakre springer-lager til styreaksel)" data-en="(Distance from rear springer bearing to steering axis)">(Avstand fra bakre springer-lager til styreaksel)</span></td>
+    <td><input id="ALOffset" type="text" name="ALOffset" value="0" onkeyup="calculate(0);"> cm</td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr id="hydra">
+    <td data-no="T-stykke offset" data-en="Triple clamp offset">T-stykke offset<br>
+      <span class="hint" data-no="(Avstand mellom styreaksel og gaffelrør)" data-en="(Distance between steering axis and fork tubes)">(Avstand mellom styreaksel og gaffelrør)</span></td>
+    <td><input id="TKOffset" type="text" name="TKOffset" value="5" onkeyup="calculate(0);"> cm</td>
+    <td></td><td></td><td></td>
+  </tr>
+  <tr><td colspan="5"><hr></td></tr>
+  <tr>
+    <td data-no="Forhjulets radius" data-en="Front wheel radius">Forhjulets radius</td>
+    <td><input id="Re" type="text" value="34,5" name="Re" onkeyup="calculate(0);"> cm</td>
+    <td></td>
+    <td data-no="Bakhjulets radius" data-en="Rear wheel radius">Bakhjulets radius</td>
+    <td><input id="Rt" type="text" value="32,5" name="Rt" onkeyup="calculate(0);"> cm</td>
+  </tr>
+  <tr>
+    <td data-no="Gaffelrørs lengde" data-en="Fork tube length">Gaffelrørs lengde</td>
+    <td><input id="KPOpit" type="text" name="KPOpit" value="72" onkeyup="calculate(0);"> cm</td>
+    <td></td>
+    <td data-no="Avstand styrerør til bakaksel" data-en="Steering head to rear axle">Avstand styrerør til bakaksel</td>
+    <td><input id="RunkoL" type="text" name="RunkoL" value="115" onkeyup="calculate(0);"> cm</td>
+  </tr>
+  <tr><td colspan="5"><hr></td></tr>
+  <tr id="detailit">
+    <td data-no="Linjetykkelse" data-en="Line width">Linjetykkelse</td>
+    <td><input id="linewidth" type="text" name="linewidth" value="3" onkeyup="calculate(0);"></td>
+    <td></td>
+    <td data-no="Zoom" data-en="Zoom">Zoom</td>
+    <td><input id="zoom" type="text" name="zoom" value="3" onkeyup="calculate(0);"> x</td>
+  </tr>
+  <tr id="viiva"><td colspan="5"><hr></td></tr>
+  <tr>
+    <td data-no="Trail" data-en="Trail">Trail</td>
+    <td><input id="jatto" type="text" name="jatto" value="0" readonly> cm</td>
+    <td></td>
+    <td data-no="Øvre rør lengde (estimat)" data-en="Upper tube length (estimate)">Øvre rør lengde (estimat)<br>
+      <span class="hint" data-no="(Avhenger av T-stykkets design)" data-en="(Depends on triple clamp design)">(Avhenger av T-stykkets design)</span></td>
+    <td><input id="Text10" type="text" name="yptp" value="" readonly> "</td>
+  </tr>
+  <tr>
+    <td data-no="Akselavstand" data-en="Wheelbase">Akselavstand</td>
+    <td><input id="Text9" type="text" name="av" value="" readonly> cm</td>
+    <td></td>
+    <td data-no="Vis beregninger i tegningen" data-en="Show calculations in drawing">Vis beregninger i tegningen</td>
+    <td>
+      <select name="calcvalues" onchange="calculate(0);">
+        <option value="1" data-no="Ja" data-en="Yes">Ja</option>
+        <option value="0" data-no="Nei" data-en="No">Nei</option>
+      </select>
+    </td>
+  </tr>
+  <tr><td colspan="5"><hr></td></tr>
+</table>
+
+<button type="button" class="edit-mode-btn" onclick="toggleEditMode()" id="editModeBtn" data-no="Aktiver redigeringsmodus" data-en="Enable Edit Mode">Aktiver redigeringsmodus</button>
+<div id="canvas-container">
+<div id="test" style="position:relative;left:0px;top:0px;width:1200px;height:700px;z-index:2;overflow:visible;" onclick="handleCanvasClick(event)"></div>
+</div>
+</form>
+</div>	
+
+<script type="text/javascript">
+var currentLang = 'no';
+var jg_doc = new jsGraphics("test"); 
+var stored_laskentatapa = 1;
+
+var stored_ALOffset = 10;
+var stored_TKOffset = 5;
+var stored_RAKEtk_T = 6;
+
+// Interaktiv editor state
+var editMode = false;
+var draggableElements = {
+  motor: { x: 0, y: 0, width: 230/3, height: 159/3, scale: 1, dragging: false, resizing: false },
+  tank: { x: 0, y: 0, width: 120/3, height: 76/3, scale: 1, dragging: false, resizing: false }
+};
+var dragStart = { x: 0, y: 0 };
+var currentElement = null;
+
+// Geometry control points
+var controlPoints = {
+  rearWheel: { x: 0, y: 0, dragging: false },
+  frontWheel: { x: 0, y: 0, dragging: false },
+  steeringHead: { x: 0, y: 0, dragging: false },
+  handlebar: { x: 0, y: 0, dragging: false }
+};
+var draggedPoint = null;
+
+// Last draggable elementer i localStorage
+function saveElementPositions() {
+  localStorage.setItem('motorcycleElements', JSON.stringify(draggableElements));
+}
+
+// Hent lagrede posisjoner
+function loadElementPositions() {
+  var saved = localStorage.getItem('motorcycleElements');
+  if (saved) {
+    try {
+      var loaded = JSON.parse(saved);
+      draggableElements.motor = Object.assign(draggableElements.motor, loaded.motor);
+      draggableElements.tank = Object.assign(draggableElements.tank, loaded.tank);
+    } catch(e) {}
+  }
+}
+
+function toggleEditMode() {
+  editMode = !editMode;
+  var btn = document.getElementById('editModeBtn');
+  if (editMode) {
+    btn.classList.add('active');
+    btn.textContent = currentLang === 'no' ? 'Avslutt redigering' : 'Exit Edit Mode';
+    btn.setAttribute('data-no', 'Avslutt redigering');
+    btn.setAttribute('data-en', 'Exit Edit Mode');
+    showEditOverlays();
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = currentLang === 'no' ? 'Aktiver redigeringsmodus' : 'Enable Edit Mode';
+    btn.setAttribute('data-no', 'Aktiver redigeringsmodus');
+    btn.setAttribute('data-en', 'Enable Edit Mode');
+    hideEditOverlays();
+    saveElementPositions();
+  }
+}
+
+function showEditOverlays() {
+  calculate(0);
+}
+
+function createControlPoint(id, point) {
+  var container = document.getElementById('canvas-container');
+  
+  // Fjern eksisterende
+  var old = document.getElementById('cp-' + id);
+  if (old) old.remove();
+  
+  // Lag control point
+  var cp = document.createElement('div');
+  cp.id = 'cp-' + id;
+  cp.className = 'resize-handle active';
+  cp.style.left = (point.x - 6) + 'px';
+  cp.style.top = (point.y - 6) + 'px';
+  cp.style.background = '#27ae60';
+  cp.style.width = '16px';
+  cp.style.height = '16px';
+  cp.title = id;
+  
+  cp.onmousedown = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    draggedPoint = id;
+    dragStart.x = e.clientX - point.x;
+    dragStart.y = e.clientY - point.y;
+    var rect = container.getBoundingClientRect();
+    dragStart.offsetX = rect.left;
+    dragStart.offsetY = rect.top;
+  };
+  
+  container.appendChild(cp);
+}
+
+function createOverlay(id, elem) {
+  var container = document.getElementById('canvas-container');
+  
+  // Fjern eksisterende
+  var old = document.getElementById('overlay-' + id);
+  if (old) old.remove();
+  var oldHandle = document.getElementById('handle-' + id);
+  if (oldHandle) oldHandle.remove();
+  
+  // Lag overlay
+  var overlay = document.createElement('div');
+  overlay.id = 'overlay-' + id;
+  overlay.className = 'draggable-overlay active';
+  overlay.style.left = elem.x + 'px';
+  overlay.style.top = elem.y + 'px';
+  overlay.style.width = (elem.width * elem.scale) + 'px';
+  overlay.style.height = (elem.height * elem.scale) + 'px';
+  
+  overlay.onmousedown = function(e) {
+    e.preventDefault();
+    currentElement = id;
+    draggableElements[id].dragging = true;
+    dragStart.x = e.clientX - elem.x;
+    dragStart.y = e.clientY - elem.y;
+  };
+  
+  container.appendChild(overlay);
+  
+  // Lag resize handle
+  var handle = document.createElement('div');
+  handle.id = 'handle-' + id;
+  handle.className = 'resize-handle active';
+  handle.style.left = (elem.x + elem.width * elem.scale - 6) + 'px';
+  handle.style.top = (elem.y + elem.height * elem.scale - 6) + 'px';
+  
+  handle.onmousedown = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    currentElement = id;
+    draggableElements[id].resizing = true;
+    dragStart.x = e.clientX;
+    dragStart.y = e.clientY;
+    dragStart.startScale = elem.scale;
+  };
+  
+  container.appendChild(handle);
+}
+
+function hideEditOverlays() {
+  calculate(0);
+}
+
+// Global mouse handlers
+var canvas = document.getElementById('cnv');
+
+canvas.addEventListener('mousedown', function(e) {
+  if (!editMode) return;
+  
+  var rect = canvas.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+  
+  // Sjekk om vi klikket på et kontrollpunkt
+  var hitRadius = 12;
+  for (var key in controlPoints) {
+    var p = controlPoints[key];
+    var dx = mx - p.x;
+    var dy = my - p.y;
+    if (Math.sqrt(dx*dx + dy*dy) < hitRadius) {
+      draggedPoint = key;
+      return;
+    }
+  }
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (!editMode || !draggedPoint) return;
+  
+  var canvas = document.getElementById('cnv');
+  var rect = canvas.getBoundingClientRect();
+  var point = controlPoints[draggedPoint];
+  point.x = e.clientX - rect.left;
+  point.y = e.clientY - rect.top;
+  
+  updateValuesFromGeometry(draggedPoint, point);
+  calculate(0);
+});
+
+document.addEventListener('mouseup', function(e) {
+  if (draggedPoint) {
+    draggedPoint = null;
+  }
+});
+
+function updateOverlay(id) {
+  var elem = draggableElements[id];
+  var overlay = document.getElementById('overlay-' + id);
+  var handle = document.getElementById('handle-' + id);
+  
+  if (overlay) {
+    overlay.style.left = elem.x + 'px';
+    overlay.style.top = elem.y + 'px';
+    overlay.style.width = (elem.width * elem.scale) + 'px';
+    overlay.style.height = (elem.height * elem.scale) + 'px';
+  }
+  
+  if (handle) {
+    handle.style.left = (elem.x + elem.width * elem.scale - 6) + 'px';
+    handle.style.top = (elem.y + elem.height * elem.scale - 6) + 'px';
+  }
+}
+
+// Last posisjoner ved oppstart
+loadElementPositions();
+
+// Konverter pixel-posisjon tilbake til cm-verdier
+	function updateControlPointVisuals() {
+		if (!editMode) return;
+		
+		for (let key in controlPoints) {
+			let point = controlPoints[key];
+			let overlay = document.getElementById('control-' + key);
+			if (overlay && point.x && point.y) {
+				overlay.style.left = point.x + 'px';
+				overlay.style.top = point.y + 'px';
+			}
+		}
+	}
+	
+	function updateValuesFromGeometry(pointId, point) {
+  var zoom = parseFloat(document.form1.zoom.value) || 3;
+  var Rt = parseFloat(document.form1.Rt.value) || 33;
+  var Re = parseFloat(document.form1.Re.value) || 33;
+  
+  // Få current nollakohtaX/Y fra siste calculate
+  var nollakohtaX = 30 * zoom;
+  var nollakohtaY = 30 * zoom;
+  
+  if (pointId === 'rearWheel') {
+    // Bakhjul flyttet - oppdater Rt (radius)
+    var centerY = point.y;
+    var groundY = nollakohtaY + Rt + Rt;
+    var newRt = Math.abs(centerY - groundY) / 2;
+    document.form1.Rt.value = twoDecimals(newRt / zoom);
+  } else if (pointId === 'frontWheel') {
+    // Forhjul flyttet - oppdater Re og/eller RunkoL
+    var centerX = point.x;
+    var centerY = point.y;
+    var rearCenterX = controlPoints.rearWheel.x || (nollakohtaX + Rt);
+    var newRunkoL = (centerX - rearCenterX) / zoom;
+    document.form1.RunkoL.value = twoDecimals(newRunkoL);
+    
+    var groundY = nollakohtaY + Rt + Rt;
+    var newRe = Math.abs(centerY - groundY) / 2;
+    document.form1.Re.value = twoDecimals(newRe / zoom);
+  } else if (pointId === 'steeringHead') {
+    // Styrerør flyttet - oppdater Yep
+    var headY = point.y;
+    var groundY = nollakohtaY + Rt + Rt;
+    var newYep = (groundY - headY) / zoom;
+    document.form1.Yep.value = twoDecimals(newYep);
+  }
+}
+var stored_RAKEtk_S = 0;
+
+// Håndter klikk på tegningen for å velge felt
+function handleCanvasClick(event) {
+  var testDiv = document.getElementById('test');
+  var rect = testDiv.getBoundingClientRect();
+  var x = event.clientX - rect.left;
+  var y = event.clientY - rect.top;
+  
+  // Fjern tidligere highlighting
+  document.querySelectorAll('.field-highlight').forEach(function(el) {
+    el.classList.remove('field-highlight');
+  });
+  
+  var zoom = parseNum(document.form1.zoom.value);
+  var Yep = parseNum(document.form1.Yep.value);
+  var Rt = parseNum(document.form1.Rt.value);
+  var Re = parseNum(document.form1.Re.value);
+  
+  var nollakohtaX = 20;
+  var nollakohtaY = parseInt((Yep - Rt - Rt + 20) * zoom);
+  if (document.form1.details.value == 1) nollakohtaY = nollakohtaY + 50 * zoom;
+  
+  var RtScaled = Rt * zoom;
+  var ReScaled = Re * zoom;
+  
+  // Sjekk hvilken del av tegningen som ble klikket
+  var dx = x - (nollakohtaX + RtScaled);
+  var dy = y - (nollakohtaY + RtScaled);
+  var distBack = Math.sqrt(dx*dx + dy*dy);
+  
+  if (distBack < RtScaled + 20) {
+    // Klikket på bakhjul
+    document.getElementById('Rt').classList.add('field-highlight');
+    document.getElementById('Rt').focus();
+    document.getElementById('Rt').select();
+  } else if (x > nollakohtaX + RtScaled * 2 && y < nollakohtaY + RtScaled) {
+    // Klikket i området rundt forhjul/gaffer
+    if (y < nollakohtaY + RtScaled * 0.5) {
+      // Øvre del - Yep eller rake
+      if (x < nollakohtaX + RtScaled * 4) {
+        document.getElementById('RAKEep').classList.add('field-highlight');
+        document.getElementById('RAKEep').focus();
+        document.getElementById('RAKEep').select();
+      } else {
+        document.getElementById('Yep').classList.add('field-highlight');
+        document.getElementById('Yep').focus();
+        document.getElementById('Yep').select();
+      }
+    } else {
+      // Nedre del - forhjul
+      document.getElementById('Re').classList.add('field-highlight');
+      document.getElementById('Re').focus();
+      document.getElementById('Re').select();
+    }
+  } else if (y > nollakohtaY + RtScaled * 1.5) {
+    // Nederst - akselavstand/wheelbase
+    document.getElementById('RunkoL').classList.add('field-highlight');
+    document.getElementById('RunkoL').focus();
+    document.getElementById('RunkoL').select();
+  }
+}
+
+// Språkbytte-funksjon
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('btnNo').className = lang === 'no' ? 'active' : '';
+  document.getElementById('btnEn').className = lang === 'en' ? 'active' : '';
+  
+  document.querySelectorAll('[data-' + lang + ']').forEach(function(el) {
+    var newText = el.getAttribute('data-' + lang);
+    if (el.tagName === 'OPTION') {
+      el.textContent = newText;
+    } else {
+      var childHint = el.querySelector('.hint');
+      if (childHint) {
+        var hintText = childHint.getAttribute('data-' + lang);
+        var firstText = el.childNodes[0];
+        if (firstText && firstText.nodeType === 3) {
+          firstText.textContent = newText;
+        }
+        if (hintText) childHint.textContent = hintText;
+      } else {
+        el.innerHTML = newText;
+      }
+    }
+  });
+  calculate(0);
+}
+
+calculate(1);
+
+function keulavaihdos()
+{
+	if (document.form1.KTyyppi.value == 'T') {
+		document.getElementById('hydra').style.display='';
+		document.getElementById('springu').style.display='none';
+		stored_ALOffset = document.form1.ALOffset.value;
+		document.form1.ALOffset.value = 0;
+		document.form1.TKOffset.value = stored_TKOffset;
+		stored_RAKEtk_S = document.form1.RAKEtk.value;
+		document.form1.RAKEtk.value = stored_RAKEtk_T;
+		
+	}else{
+		document.getElementById('hydra').style.display='none';
+		document.getElementById('springu').style.display='';
+		stored_TKOffset = document.form1.TKOffset.value;
+		document.form1.TKOffset.value = 0;
+		document.form1.ALOffset.value = stored_ALOffset;
+		stored_RAKEtk_T = document.form1.RAKEtk.value;
+		document.form1.RAKEtk.value = stored_RAKEtk_S;
+	}
+	calculate(0);
+}
+
+function calculate(laskentatapa)
+{
+	if (document.form1.details.value == 0)	{
+		document.getElementById('detailit').style.display='none';
+		document.getElementById('viiva').style.display='none';
+	}else	{
+		document.getElementById('detailit').style.display='';
+		document.getElementById('viiva').style.display='';
+	}
+	
+	if (laskentatapa == 0) {
+		laskentatapa = stored_laskentatapa;
+	} else {
+		stored_laskentatapa = laskentatapa;
+	}	
+	
+	var radtodeg = Math.PI/180; //apumuuttuja jolla saadaan muutettua rad --> deg
+	
+	//Lähtöarvot
+	var Yep = new Number(document.form1.Yep.value.replace(',', '.'));
+	var k = new Number(document.form1.k.value.replace(',', '.'));
+	var Re = new Number(document.form1.Re.value.replace(',', '.'));
+	var Rt = new Number(document.form1.Rt.value.replace(',', '.'));
+	
+	var RAKEep = new Number(document.form1.RAKEep.value.replace(',', '.'));
+	var RAKEtk = new Number(document.form1.RAKEtk.value.replace(',', '.'));
+	var TKOffset = new Number(document.form1.TKOffset.value.replace(',', '.'));
+	var RunkoL = new Number(document.form1.RunkoL.value.replace(',', '.'));
+	var KPOpit = new Number(document.form1.KPOpit.value.replace(',', '.'));
+	var ALOffset = new Number(document.form1.ALOffset.value.replace(',', '.'));
+	
+	//kokonaiskulma
+	var KokonaisRake = RAKEep + RAKEtk;
+		
+	//T-kappaleiden kolmion kateetit
+	var Ytk = Math.sin(radtodeg*RAKEep) * TKOffset;
+	var Xtk = Math.cos(radtodeg*RAKEep) * TKOffset;
+				
+	//keulaputkien kolmion kateetit
+	if (laskentatapa == 1) {
+		var Yk = Yep - Re + Ytk;
+		var Xk = Math.tan(radtodeg * KokonaisRake ) * Yk;
+		k = Yk / Math.cos(radtodeg * KokonaisRake );
+	} else {
+		var Yk = Math.cos(radtodeg * KokonaisRake ) * k;
+		var Xk = Math.sin(radtodeg * KokonaisRake ) * k;
+		Yep = Yk + Re - Ytk;
+	}	
+	
+	//emäputken virtuaalikolmion x-kateetti
+	var Xep = Math.tan(radtodeg * RAKEep ) * Yep;
+	if (document.form1.KTyyppi.value == 'T') {
+		var jatto = Xep - Xk - Xtk;
+		var akselivali = Xk + Xtk + RunkoL;
+	} else {
+		var jatto = Xep - Xk - Xtk - ALOffset;
+		var akselivali = Xk + Xtk + RunkoL + ALOffset;
+	}	
+		
+	var YPpituus = (k - KPOpit) / 2.54;
+	
+	
+	
+	document.form1.jatto.value = twoDecimals(jatto);
+	if (laskentatapa == 1) {
+		document.form1.k.value = twoDecimals(k);
+	} else {
+		document.form1.Yep.value = twoDecimals(Yep);
+	}	
+	document.form1.yptp.value = twoDecimals(YPpituus);
+	document.form1.av.value = twoDecimals(akselivali);
+
+
+
+	// KUVION PIIRTO
+	
+		
+	
+	var h = Yep;
+	var r = Re;
+	var zoom = new Number(document.form1.zoom.value.replace(',', '.'));
+	var linewidth = new Number(document.form1.linewidth.value.replace(',', '.'));
+	
+	Rt = parseInt(Rt * zoom);
+	RunkoL = parseInt(RunkoL * zoom);
+	Xep = parseInt(Xep * zoom);
+	Yep = parseInt(Yep * zoom);
+	
+
+	Xtk = parseInt(Xtk * zoom);
+	
+	Ytk = parseInt(Ytk * zoom);
+	Xk = parseInt(Xk * zoom);
+	Yk = parseInt(Yk * zoom);
+	Re = parseInt(Re * zoom);
+	ALOffset = parseInt(ALOffset * zoom);
+	
+	
+	
+	var nollakohtaX = parseInt(20);
+	var nollakohtaY = parseInt(Yep-Rt-Rt+20);
+	
+	if (document.form1.details.value == 1)	{ nollakohtaY = nollakohtaY + 50*zoom }
+	
+	var maavara = parseInt(8*zoom) ;// * zoom:
+	var alarunko = parseInt(60*zoom);
+	var kehtoputkienalareuna = parseInt(12*zoom);
+	var emäputkenalapistey = parseInt(10*zoom);
+	var emäputkenalapistex =  Math.tan(radtodeg * RAKEep ) * emäputkenalapistey;
+	
+	var TKalay = parseInt(8*zoom);
+	var TKalax =  Math.tan(radtodeg * KokonaisRake ) * TKalay;
+	
+	var apuviivat_allemaan = parseInt(10*zoom)
+	
+	jg_doc.clear();
+	jg_doc.setPrintable(true);
+	
+	jg_doc.setStroke(linewidth); 
+	jg_doc.setColor("#a0826d");
+	jg_doc.drawLine(0, nollakohtaY+Rt+Rt, nollakohtaX+Rt+RunkoL+Xep+30*zoom, nollakohtaY+Rt+Rt); // maa
+	
+	jg_doc.setColor("#2c3e50"); // mørk ramme-farge
+
+	if (document.form1.details.value == 1)	{	
+		var motor = draggableElements.motor;
+		var motorX = motor.x || (nollakohtaX+67*zoom);
+		var motorY = motor.y || (nollakohtaY+4*zoom);
+		if (!motor.x) { motor.x = motorX; motor.y = motorY; }
+		jg_doc.drawImage("motor.png", motorX, motorY, motor.width*zoom*motor.scale, motor.height*zoom*motor.scale);  //Motor
+	}
+		
+	jg_doc.drawEllipse(nollakohtaX, nollakohtaY, 2*Rt, 2*Rt); // takakumi
+	jg_doc.drawLine(nollakohtaX+Rt, nollakohtaY+Rt, nollakohtaX+Rt+RunkoL+emäputkenalapistex*0.3, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey*0.3); // rungon yläputki
+	
+	// Oppdater control points posisjoner
+	if (!draggedPoint) {
+		controlPoints.rearWheel.x = nollakohtaX + Rt;
+		controlPoints.rearWheel.y = nollakohtaY + Rt;
+		controlPoints.frontWheel.x = nollakohtaX + Rt + RunkoL + Xtk + Xk - Re + ALOffset;
+		controlPoints.frontWheel.y = nollakohtaY + Rt + Rt - Yep - Ytk + Yk - Re;
+		controlPoints.steeringHead.x = nollakohtaX + Rt + RunkoL;
+		controlPoints.steeringHead.y = nollakohtaY + Rt + Rt - Yep;
+	}
+	
+if (document.form1.details.value == 1)	{
+	var tank = draggableElements.tank;
+	var tankX = tank.x || (nollakohtaX+Rt+RunkoL-45*zoom);
+	var tankY = tank.y || (nollakohtaY+Rt+Rt-Yep);
+	if (!tank.x) { tank.x = tankX; tank.y = tankY; }
+	jg_doc.drawImage("tank.png", tankX, tankY, tank.width*zoom*tank.scale, tank.height*zoom*tank.scale);  //Tank
+		jg_doc.drawEllipse(nollakohtaX+Rt+RunkoL+Xtk+Xk-Re+ALOffset+7*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+Yk-Re+7*zoom, 2*Re-14*zoom, 2*Re-14*zoom); // etuvanne
+		jg_doc.drawEllipse(nollakohtaX+10*zoom, nollakohtaY+10*zoom, 2*Rt-20*zoom, 2*Rt-20*zoom); // takavanne
+		jg_doc.setColor("#95a5a6");
+		jg_doc.setStroke(linewidth+2);
+		jg_doc.drawLine(nollakohtaX+Rt, nollakohtaY+Rt, nollakohtaX+Rt-10*zoom, nollakohtaY+Rt-100*zoom); // sissybuari
+		jg_doc.setStroke(linewidth+3);
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL-15*zoom, nollakohtaY+Rt+Rt-Yep-50*zoom); // apinakiikku
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL-15*zoom, nollakohtaY+Rt+Rt-Yep-50*zoom, nollakohtaX+Rt+RunkoL-30*zoom, nollakohtaY+Rt+Rt-Yep-30*zoom);
+	}	
+	
+	jg_doc.setColor("#000000"); // musta
+	jg_doc.setStroke(linewidth*2);
+	jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey); // emäputki
+	
+	jg_doc.setStroke(linewidth); 
+	jg_doc.drawLine(nollakohtaX+Rt, nollakohtaY+Rt, nollakohtaX+Rt+Rt, nollakohtaY+Rt+Rt-maavara); // rungon taka-alarunko
+	jg_doc.drawLine(nollakohtaX+Rt+Rt, nollakohtaY+Rt+Rt-maavara, nollakohtaX+Rt+Rt+alarunko, nollakohtaY+Rt+Rt-maavara); // rungon taka-alarunko
+	jg_doc.drawLine(nollakohtaX+Rt+Rt+alarunko, nollakohtaY+Rt+Rt-maavara, nollakohtaX+Rt+Rt+alarunko+kehtoputkienalareuna, nollakohtaY+Rt+Rt-maavara-kehtoputkienalareuna); // kehtoputkien alareuna
+	jg_doc.drawLine(nollakohtaX+Rt+Rt+alarunko+kehtoputkienalareuna, nollakohtaY+Rt+Rt-maavara-kehtoputkienalareuna, nollakohtaX+Rt+RunkoL+emäputkenalapistex*0.8, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey*0.8); // kehtoputket
+	
+	if (document.form1.KTyyppi.value == 'T'){
+		jg_doc.drawEllipse(nollakohtaX+Rt+RunkoL+Xtk+Xk-Re, nollakohtaY+Rt+Rt-Yep-Ytk+Yk-Re, 2*Re, 2*Re); // etukumi
+	}else{
+		jg_doc.drawEllipse(nollakohtaX+Rt+RunkoL+Xtk+Xk-Re+ALOffset, nollakohtaY+Rt+Rt-Yep-Ytk+Yk-Re, 2*Re, 2*Re); // etukumi
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk, nollakohtaX+Rt+RunkoL+Xtk+Xk+ALOffset, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // alalinkku
+	}
+	
+	jg_doc.setColor("#7f8c8d");
+	
+	if (document.form1.KTyyppi.value == 'T'){
+		if (document.form1.details.value == 1)	{ jg_doc.setStroke(linewidth+4); }
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk, nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // Keulaputket
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk); // ylä T-kappale
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey, nollakohtaX+Rt+RunkoL+Xtk+TKalax, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay); // ala T-kappale
+	} else {
+		if (document.form1.details.value == 1)	{ jg_doc.setStroke(linewidth+2); }
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk, nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // taempi springer
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk, nollakohtaX+Rt+RunkoL+Xtk+Xk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // joustava springer
+		//jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk); // ylä T-kappale
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey, nollakohtaX+Rt+RunkoL+Xtk+TKalax+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay); // ala T-kappale
+	}
+	
+	if (document.form1.calcvalues.value == 1)	{
+		//Laskentatulokset
+	
+		jg_doc.setStroke(2); 
+		jg_doc.setColor("#ff6b00");
+		if (1 == 2 )
+			jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk, nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt+apuviivat_allemaan); // etuvanteen säde alas
+		else
+			jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk+Xk+ALOffset, nollakohtaY+Rt+Rt-Yep-Ytk+Yk, nollakohtaX+Rt+RunkoL+Xtk+Xk+ALOffset, nollakohtaY+Rt+Rt+apuviivat_allemaan); // etuvanteen säde alas
+
+		
+		
+		jg_doc.drawLine(nollakohtaX+Rt, nollakohtaY+Rt, nollakohtaX+Rt, nollakohtaY+Rt+Rt+apuviivat_allemaan); // takavanteen säde alas
+	
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL+Xep, nollakohtaY+Rt+Rt); // emäputken jana
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xep, nollakohtaY+Rt+Rt,nollakohtaX+Rt+RunkoL+Xep, nollakohtaY+Rt+Rt+apuviivat_allemaan); // emäputken janan suora alas
+			
+		//tekstit
+		jg_doc.drawString("av = " + twoDecimals(akselivali) + " cm", RunkoL+Xep/2, nollakohtaY+Rt+Rt+apuviivat_allemaan/2); 
+		if (document.form1.KTyyppi.value == 'T')
+			jg_doc.drawString("j = " + twoDecimals(jatto) + " cm", nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt+apuviivat_allemaan+2); 
+		else
+			jg_doc.drawString("j = " + twoDecimals(jatto) + " cm", nollakohtaX+Rt+RunkoL+Xtk+Xk+ALOffset, nollakohtaY+Rt+Rt+apuviivat_allemaan+2); 
+				
+		jg_doc.drawString("h = " + twoDecimals(h) + " cm", nollakohtaX+Rt+RunkoL+2*zoom, nollakohtaY+Rt); 
+		jg_doc.drawString("k = " + twoDecimals(k) + " cm", (nollakohtaX+Rt+RunkoL+Xtk)+((nollakohtaX+Rt+RunkoL+Xtk+Xk)-(nollakohtaX+Rt+RunkoL+Xtk))/2 + 3*zoom, (nollakohtaY+Rt+Rt-Yep-Ytk)+((nollakohtaY+Rt+Rt-Yep-Ytk+Yk)-(nollakohtaY+Rt+Rt-Yep-Ytk))/2 - 8*zoom); 
+		jg_doc.drawString("r = " + twoDecimals(r) + " cm", nollakohtaX+Rt+RunkoL+Xtk+Xk+2*zoom, nollakohtaY+Rt+Rt-Re*0.75); 
+	
+		jg_doc.drawString("a1 = " + twoDecimals(RAKEep) + "°", nollakohtaX+Rt+RunkoL-20*zoom, nollakohtaY+Rt+Rt-Yep-2*zoom); 
+		jg_doc.drawString("a2 = " + twoDecimals(KokonaisRake) + "°", nollakohtaX+Rt+RunkoL+Xtk+5*zoom, nollakohtaY+Rt+Rt-Yep-Ytk-4*zoom); 	
+	
+		jg_doc.setColor("#bdc3c7");
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt); // rungon korkeus
+	}
+	
+	// Tegn kontrollpunkter hvis edit mode (etter alt annet)
+	if (editMode) {
+		jg_doc.setColor("#27ae60");
+		jg_doc.fillEllipse(controlPoints.rearWheel.x - 8, controlPoints.rearWheel.y - 8, 16, 16);
+		jg_doc.fillEllipse(controlPoints.frontWheel.x - 8, controlPoints.frontWheel.y - 8, 16, 16);
+		jg_doc.fillEllipse(controlPoints.steeringHead.x - 8, controlPoints.steeringHead.y - 8, 16, 16);
+		jg_doc.setColor("#000000");
+	}
+	
+	jg_doc.paint();
+	
+
+}
+
+function parseNum(val) {
+  return Number(String(val).replace(',', '.'));
+}
+
+function twoDecimals( formField ) {
+	//return formField;
+	
+	var tmpInt = new String(formField);
+	tmpInt = tmpInt.replace(',','.');
+	var tmpInt = new Number(tmpInt);
+	if (!isNaN(tmpInt)) {
+		tmpInt = Math.round(tmpInt * 10);
+		tmpInt = tmpInt / 10;
+		tmpInt = new String(tmpInt);
+		/*if (tmpInt.indexOf(',') == -1) tmpInt += ",";
+		var sDecs = tmpInt.substring(tmpInt.indexOf(',') + 1, tmpInt.length);
+		if (sDecs.length == 1) tmpInt = tmpInt + '0';
+		if (sDecs.length < 1) tmpInt = tmpInt + '00';*/
+		tmpInt = tmpInt.replace('.', ',')
+		return tmpInt;
+	} else return(false);
+}
+
+</script>
+
+</BODY>
+</HTML>
