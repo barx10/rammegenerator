@@ -950,10 +950,10 @@ function setupCanvasEventListeners() {
     var my = e.clientY - rect.top;
 
     // Sjekk om vi klikket på et kontrollpunkt
-    var hitRadius = 16;
+    var hitRadius = 24;
     for (var key in controlPoints) {
       var p = controlPoints[key];
-      
+
       // Spesialhåndtering for bilder (motor/tank)
       if (p.type === 'image' && p.imageKey) {
         var img = draggableElements[p.imageKey];
@@ -1044,7 +1044,7 @@ document.addEventListener('mousedown', function(e) {
   if (mx < 0 || my < 0 || mx > rect.width || my > rect.height) return;
 
   // Sjekk om vi klikket på et kontrollpunkt
-  var hitRadius = 16;
+  var hitRadius = 24;
   for (var key in controlPoints) {
     var p = controlPoints[key];
     var dx = mx - p.x;
@@ -1100,7 +1100,7 @@ document.addEventListener('mousemove', function(e) {
   }
 
   // Sjekk om vi hover over et kontrollpunkt (for cursor feedback)
-  var hitRadius = 14;
+  var hitRadius = 24;
   var hovering = false;
   for (var key in controlPoints) {
     var p = controlPoints[key];
@@ -1920,7 +1920,7 @@ if (document.form1.details.value == 1)	{
 	
 	// Tegn kontrollpunkter hvis edit mode (etter alt annet)
 	if (editMode) {
-		var cpSize = 14;
+		var cpSize = 20;
 		var hoverColor = "#ff6b00";
 
 		// Tegn hjelpelinjer
