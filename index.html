@@ -463,8 +463,8 @@ hr {
     <td><input id="Text9" type="text" name="av" value="" readonly> <span class="unit">cm</span></td>
   </tr>
   <tr class="results-row">
-    <td data-no="Øvre rør" data-en="Upper tube">Øvre rør<span class="hint" data-no="(estimat)" data-en="(estimate)">(estimat)</span></td>
-    <td><input id="Text10" type="text" name="yptp" value="" readonly> <span class="unit">"</span></td>
+    <td data-no="Øvre rør" data-en="Upper tube">Øvre rør<span class="hint" data-no="(lengde)" data-en="(length)">(lengde)</span></td>
+    <td><input id="Text10" type="text" name="yptp" value="" readonly> <span class="unit">cm</span></td>
     <td data-no="Vis beregninger" data-en="Show calcs">Vis beregninger</td>
     <td>
       <select name="calcvalues" onchange="calculate(0);">
@@ -1354,8 +1354,14 @@ function calculate(laskentatapa)
 		var jatto = Xep - Xk - Xtk - ALOffset;
 		var akselivali = Xk + Xtk + RunkoL + ALOffset;
 	}	
-		
-	var YPpituus = (k - KPOpit) / 2.54;
+	
+	// Øvre rør lengde: fra bakhjul-senter til festepunkt på styrerør
+	// Festepunkt er styrerør-topp + 30% ned langs styrerør (emäputkenalapistey=10cm)
+	var emapAlapisteY = 10; // cm, fast verdi i tegning
+	var emapAlapisteX = Math.tan(radtodeg * RAKEep) * emapAlapisteY;
+	var ovreRorDx = RunkoL + emapAlapisteX * 0.3;
+	var ovreRorDy = Rt - Yep + emapAlapisteY * 0.3;
+	var YPpituus = Math.sqrt(ovreRorDx * ovreRorDx + ovreRorDy * ovreRorDy);
 	
 	
 	
