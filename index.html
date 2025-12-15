@@ -457,7 +457,7 @@ hr {
 
 <div class="canvas-panel">
 <div id="canvas-container">
-<div id="test" style="position:relative;left:0px;top:0px;width:900px;height:500px;z-index:2;overflow:visible;" onclick="handleCanvasClick(event)"></div>
+<div id="test" style="position:relative;left:0px;top:0px;width:900px;height:550px;z-index:2;overflow:visible;" onclick="handleCanvasClick(event)"></div>
 </div>
 </div><!-- end canvas-panel -->
 
@@ -809,7 +809,7 @@ function updateValuesFromGeometry(pointId, point) {
 
   // Beregn nollapunkt (origin) basert på gjeldende verdier
   var nollakohtaX = 20;
-  var nollakohtaY = parseInt((Yep - Rt - Rt + 20) * zoom);
+  var nollakohtaY = parseInt((Yep - Rt - Rt + 60) * zoom);
   if (document.form1.details.value == 1) nollakohtaY = nollakohtaY + 50 * zoom;
 
   var groundY = nollakohtaY + Rt * zoom + Rt * zoom;
@@ -913,9 +913,9 @@ function handleCanvasClick(event) {
   var Re = parseNum(document.form1.Re.value);
   
   var nollakohtaX = 20;
-  var nollakohtaY = parseInt((Yep - Rt - Rt + 20) * zoom);
+  var nollakohtaY = parseInt((Yep - Rt - Rt + 60) * zoom);
   if (document.form1.details.value == 1) nollakohtaY = nollakohtaY + 50 * zoom;
-  
+
   var RtScaled = Rt * zoom;
   var ReScaled = Re * zoom;
   
@@ -1109,8 +1109,8 @@ function calculate(laskentatapa)
 	
 	
 	var nollakohtaX = parseInt(20);
-	var nollakohtaY = parseInt(Yep-Rt-Rt+20);
-	
+	var nollakohtaY = parseInt(Yep-Rt-Rt+60);
+
 	if (document.form1.details.value == 1)	{ nollakohtaY = nollakohtaY + 50*zoom }
 	
 	var maavara = parseInt(8*zoom) ;// * zoom:
