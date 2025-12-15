@@ -419,9 +419,9 @@ hr {
   <tr><td colspan="4"><hr></td></tr>
   <tr>
     <td data-no="Forhjul radius" data-en="Front wheel radius">Forhjul radius</td>
-    <td><input id="Re" type="text" value="34,5" name="Re" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
+    <td><input id="Re" type="text" value="13,5" name="Re" onkeyup="calculate(0);"> <span class="unit">"</span></td>
     <td data-no="Bakhjul radius" data-en="Rear wheel radius">Bakhjul radius</td>
-    <td><input id="Rt" type="text" value="32,5" name="Rt" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
+    <td><input id="Rt" type="text" value="12,8" name="Rt" onkeyup="calculate(0);"> <span class="unit">"</span></td>
   </tr>
   <tr>
     <td data-no="Gaffelrør lengde" data-en="Fork tube length">Gaffelrør lengde</td>
@@ -1012,8 +1012,9 @@ loadElementPositions();
 	
 function updateValuesFromGeometry(pointId, point) {
   var zoom = parseFloat(String(document.form1.zoom.value).replace(',', '.')) || 3;
-  var Rt = parseFloat(String(document.form1.Rt.value).replace(',', '.')) || 33;
-  var Re = parseFloat(String(document.form1.Re.value).replace(',', '.')) || 33;
+  // Hjulradius er i tommer, konverter til cm
+  var Rt = (parseFloat(String(document.form1.Rt.value).replace(',', '.')) || 13) * 2.54;
+  var Re = (parseFloat(String(document.form1.Re.value).replace(',', '.')) || 13) * 2.54;
   var Yep = parseFloat(String(document.form1.Yep.value).replace(',', '.')) || 88;
   var RunkoL = parseFloat(String(document.form1.RunkoL.value).replace(',', '.')) || 115;
   var RAKEep = parseFloat(String(document.form1.RAKEep.value).replace(',', '.')) || 41;
@@ -1031,16 +1032,18 @@ function updateValuesFromGeometry(pointId, point) {
   var steeringHeadY = nollakohtaY + Rt * zoom + Rt * zoom - Yep * zoom;
 
   if (pointId === 'rearWheelTop') {
-    // Bakhjul topp - endre radius
-    var newRt = (groundY - point.y) / zoom;
-    if (newRt > 10 && newRt < 100) {
+    // Bakhjul topp - endre radius (konverter cm til tommer)
+    var newRtCm = (groundY - point.y) / zoom;
+    var newRt = newRtCm / 2.54;
+    if (newRt > 5 && newRt < 40) {
       document.form1.Rt.value = twoDecimals(newRt);
       highlightField('Rt');
     }
   } else if (pointId === 'frontWheelTop') {
-    // Forhjul topp - endre radius
-    var newRe = (groundY - point.y) / zoom;
-    if (newRe > 10 && newRe < 100) {
+    // Forhjul topp - endre radius (konverter cm til tommer)
+    var newReCm = (groundY - point.y) / zoom;
+    var newRe = newReCm / 2.54;
+    if (newRe > 5 && newRe < 40) {
       document.form1.Re.value = twoDecimals(newRe);
       highlightField('Re');
     }
@@ -1317,8 +1320,9 @@ function calculate(laskentatapa)
 	//Lähtöarvot
 	var Yep = new Number(document.form1.Yep.value.replace(',', '.'));
 	var k = new Number(document.form1.k.value.replace(',', '.'));
-	var Re = new Number(document.form1.Re.value.replace(',', '.'));
-	var Rt = new Number(document.form1.Rt.value.replace(',', '.'));
+	// Hjulradius er i tommer, konverter til cm for beregninger
+	var Re = new Number(document.form1.Re.value.replace(',', '.')) * 2.54;
+	var Rt = new Number(document.form1.Rt.value.replace(',', '.')) * 2.54;
 	
 	var RAKEep = new Number(document.form1.RAKEep.value.replace(',', '.'));
 	var RAKEtk = new Number(document.form1.RAKEtk.value.replace(',', '.'));
