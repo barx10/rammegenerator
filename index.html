@@ -654,9 +654,15 @@ function toggleFrameLock() {
       }
     });
   } else {
-    // Lås opp
+    // Lås opp - behold rotasjon ved å oppdatere RAKEep
     frameLocked = false;
-    frameRotationAngle = 0; // Reset rotasjon
+    
+    // Oppdater styrerørvinkel med rotasjonsvinkelen
+    var currentRake = parseFloat(document.form1.RAKEep.value.replace(',', '.')) || 0;
+    var newRake = currentRake + frameRotationAngle;
+    document.form1.RAKEep.value = newRake.toFixed(1);
+    
+    frameRotationAngle = 0; // Reset rotasjon (nå bakt inn i RAKEep)
     btn.textContent = currentLang === 'no' ? 'Lås ramme' : 'Lock frame';
     btn.classList.remove('locked');
     rotDisplay.style.display = 'none';
@@ -669,7 +675,7 @@ function toggleFrameLock() {
       }
     });
     
-    // Tegn på nytt uten rotasjon
+    // Tegn på nytt med ny RAKEep-verdi
     calculate(0);
   }
 }
@@ -1797,8 +1803,10 @@ if (document.form1.details.value == 1)	{
 	
 	jg_doc.setColor("#000000"); // musta
 	jg_doc.setStroke(linewidth*2);
-	// Emäputki (styrerør) - roteres IKKE (følger hjulet)
-	jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey); // emäputki
+	// Emäputki (styrerør) - roteres med rammen
+	var emaStart = rotatePoint(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep);
+	var emaEnd = rotatePoint(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey);
+	jg_doc.drawLine(emaStart.x, emaStart.y, emaEnd.x, emaEnd.y); // emäputki
 	
 	jg_doc.setStroke(linewidth);
 	// Nedre rammelinjer med rotasjon
@@ -1831,30 +1839,54 @@ if (document.form1.details.value == 1)	{
 	jg_doc.drawLine(l3Rot.x, l3Rot.y, l4Rot.x, l4Rot.y); // kehtoputkien alareuna
 	jg_doc.drawLine(l4Rot.x, l4Rot.y, l5Rot.x, l5Rot.y); // kehtoputket
 	
+	// Forhjul med rotasjon
+	var frontWheelCenterX, frontWheelCenterY;
 	if (document.form1.KTyyppi.value == 'T'){
-		jg_doc.drawEllipse(nollakohtaX+Rt+RunkoL+Xtk+Xk-Re, nollakohtaY+Rt+Rt-Yep-Ytk+Yk-Re, 2*Re, 2*Re); // etukumi
+		frontWheelCenterX = nollakohtaX+Rt+RunkoL+Xtk+Xk;
+		frontWheelCenterY = nollakohtaY+Rt+Rt-Yep-Ytk+Yk;
 	}else{
-		jg_doc.drawEllipse(nollakohtaX+Rt+RunkoL+Xtk+Xk-Re+ALOffset, nollakohtaY+Rt+Rt-Yep-Ytk+Yk-Re, 2*Re, 2*Re); // etukumi
-		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk, nollakohtaX+Rt+RunkoL+Xtk+Xk+ALOffset, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // alalinkku
+		frontWheelCenterX = nollakohtaX+Rt+RunkoL+Xtk+Xk+ALOffset;
+		frontWheelCenterY = nollakohtaY+Rt+Rt-Yep-Ytk+Yk;
+	}
+	var fwRot = rotatePoint(frontWheelCenterX, frontWheelCenterY);
+	jg_doc.drawEllipse(fwRot.x-Re, fwRot.y-Re, 2*Re, 2*Re); // etukumi (forhjul)
+	
+	if (document.form1.KTyyppi.value != 'T'){
+		// Alalinkku med rotasjon
+		var alStart = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk);
+		var alEnd = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+Xk+ALOffset, nollakohtaY+Rt+Rt-Yep-Ytk+Yk);
+		jg_doc.drawLine(alStart.x, alStart.y, alEnd.x, alEnd.y); // alalinkku
 	}
 	
 	jg_doc.setColor("#7f8c8d");
 	
 	if (document.form1.KTyyppi.value == 'T'){
 		if (document.form1.details.value == 1)	{ jg_doc.setStroke(linewidth+4); }
-		// Keulaputket - roteres IKKE (følger hjulet)
-		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk, nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // Keulaputket
-		// Ylä T-kappale - roteres IKKE
-		jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk); // ylä T-kappale
-		// Ala T-kappale - roteres IKKE
-		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey, nollakohtaX+Rt+RunkoL+Xtk+TKalax, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay); // ala T-kappale
+		// Keulaputket med rotasjon
+		var kp1 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk);
+		var kp2 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk);
+		jg_doc.drawLine(kp1.x, kp1.y, kp2.x, kp2.y); // Keulaputket
+		// Ylä T-kappale med rotasjon
+		var yt1 = rotatePoint(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep);
+		var yt2 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk);
+		jg_doc.drawLine(yt1.x, yt1.y, yt2.x, yt2.y); // ylä T-kappale
+		// Ala T-kappale med rotasjon
+		var at1 = rotatePoint(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey);
+		var at2 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+TKalax, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay);
+		jg_doc.drawLine(at1.x, at1.y, at2.x, at2.y); // ala T-kappale
 	} else {
 		if (document.form1.details.value == 1)	{ jg_doc.setStroke(linewidth+2); }
-		// Springer - roteres IKKE (følger hjulet)
-		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk, nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // taempi springer
-		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk, nollakohtaX+Rt+RunkoL+Xtk+Xk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // joustava springer
-		// Ala T-kappale - roteres IKKE
-		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey, nollakohtaX+Rt+RunkoL+Xtk+TKalax+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay); // ala T-kappale
+		// Springer med rotasjon
+		var sp1 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk);
+		var sp2 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk);
+		jg_doc.drawLine(sp1.x, sp1.y, sp2.x, sp2.y); // taempi springer
+		var sp3 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk);
+		var sp4 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+Xk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+Yk);
+		jg_doc.drawLine(sp3.x, sp3.y, sp4.x, sp4.y); // joustava springer
+		// Ala T-kappale med rotasjon
+		var at1s = rotatePoint(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey);
+		var at2s = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+TKalax+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay);
+		jg_doc.drawLine(at1s.x, at1s.y, at2s.x, at2s.y); // ala T-kappale
 	}
 	
 	if (document.form1.calcvalues.value == 1)	{
