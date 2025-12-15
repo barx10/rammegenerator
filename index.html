@@ -365,6 +365,38 @@ hr {
   background: rgba(255,107,0,0.2);
 }
 
+/* Button row */
+.button-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.lock-frame-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lock-frame-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(52,152,219,0.4);
+}
+
+.lock-frame-btn.locked {
+  background: linear-gradient(135deg, #27ae60, #1e8449);
+}
+
+.lock-frame-btn.locked:hover {
+  box-shadow: 0 4px 12px rgba(39,174,96,0.4);
+}
+
 /* Footer / Kontakt */
 .footer {
   margin-top: 30px;
@@ -522,7 +554,10 @@ hr {
   <tr><td colspan="4"><hr></td></tr>
 </table>
 
-<button type="button" class="download-pdf-btn" onclick="downloadPDF()" id="downloadPdfBtn" data-no="Last ned PDF" data-en="Download PDF">Last ned PDF</button>
+<div class="button-row">
+  <button type="button" class="lock-frame-btn" onclick="toggleFrameLock()" id="lockFrameBtn" data-no="Lås ramme" data-en="Lock frame">Lås ramme</button>
+  <button type="button" class="download-pdf-btn" onclick="downloadPDF()" id="downloadPdfBtn" data-no="Last ned PDF" data-en="Download PDF">Last ned PDF</button>
+</div>
 
 <div id="controlPointLegend" class="control-point-legend">
   <span style="font-weight:600; margin-right: 8px;" data-no="Dra i punktene for å justere:" data-en="Drag points to adjust:">Dra i punktene for å justere:</span>
@@ -567,6 +602,72 @@ var stored_laskentatapa = 1;
 var stored_ALOffset = 10;
 var stored_TKOffset = 5;
 var stored_RAKEtk_T = 6;
+
+// Rammelås - lagrer alle proporsjoner når låst
+var frameLocked = false;
+var lockedFrame = {
+  Rt: 0,           // Bakhjul radius (cm)
+  Yep: 0,          // Styreaksel høyde
+  RunkoL: 0,       // Rammelengde
+  distance: 0,     // Avstand fra bakhjul-senter til styrerør
+  angle: 0,        // Vinkel fra horisontal
+  RAKEep: 0,       // Rake vinkel
+  maavara: 0,      // Bunnklaring
+  alarunko: 0,     // Nedre ramme
+  kehto: 0,        // Kehto hjørne
+  alarunkoAngle: 0 // Nedre ramme vinkel
+};
+
+function toggleFrameLock() {
+  var btn = document.getElementById('lockFrameBtn');
+  
+  if (!frameLocked) {
+    // Lås ramma - lagre alle nåværende verdier
+    var Rt = (parseFloat(String(document.form1.Rt.value).replace(',', '.')) || 26) * 2.54 / 2;
+    var Yep = parseFloat(String(document.form1.Yep.value).replace(',', '.')) || 88;
+    var RunkoL = parseFloat(String(document.form1.RunkoL.value).replace(',', '.')) || 115;
+    
+    lockedFrame.Rt = Rt;
+    lockedFrame.Yep = Yep;
+    lockedFrame.RunkoL = RunkoL;
+    lockedFrame.RAKEep = parseFloat(String(document.form1.RAKEep.value).replace(',', '.')) || 41;
+    lockedFrame.maavara = parseFloat(String(document.form1.maavara.value).replace(',', '.')) || 8;
+    lockedFrame.alarunko = parseFloat(String(document.form1.alarunko.value).replace(',', '.')) || 60;
+    lockedFrame.kehto = parseFloat(String(document.form1.kehto.value).replace(',', '.')) || 12;
+    lockedFrame.alarunkoAngle = parseFloat(String(document.form1.alarunkoAngle.value).replace(',', '.')) || 0;
+    
+    // Beregn avstand og vinkel fra bakhjul-senter til styrerør-topp
+    var dx = RunkoL;
+    var dy = Yep - Rt;
+    lockedFrame.distance = Math.sqrt(dx * dx + dy * dy);
+    lockedFrame.angle = Math.atan2(dy, dx);
+    
+    frameLocked = true;
+    btn.textContent = currentLang === 'no' ? 'Lås opp' : 'Unlock';
+    btn.classList.add('locked');
+    
+    // Deaktiver andre kontrollpunkter unntatt rotasjon
+    document.querySelectorAll('input[type="text"]').forEach(function(input) {
+      if (!input.readOnly) {
+        input.dataset.wasEnabled = 'true';
+        input.disabled = true;
+      }
+    });
+  } else {
+    // Lås opp
+    frameLocked = false;
+    btn.textContent = currentLang === 'no' ? 'Lås ramme' : 'Lock frame';
+    btn.classList.remove('locked');
+    
+    // Reaktiver input-felt
+    document.querySelectorAll('input[type="text"]').forEach(function(input) {
+      if (input.dataset.wasEnabled === 'true') {
+        input.disabled = false;
+        delete input.dataset.wasEnabled;
+      }
+    });
+  }
+}
 
 // Interaktiv editor state - alltid aktiv
 var editMode = true;
@@ -1238,39 +1339,37 @@ function updateValuesFromGeometry(pointId, point) {
     }
   } else if (pointId === 'frameRotation') {
     // Rammerotasjon - roterer hele ramma rundt bakhjul-senter
-    // Alle parametere justeres proporsjonalt
+    // Krever at ramma er låst først
     
-    // Hent nåværende styrerør-posisjon i forhold til bakhjul-senter
-    var currentYep = parseFloat(String(document.form1.Yep.value).replace(',', '.')) || 88;
-    var currentRunkoL = parseFloat(String(document.form1.RunkoL.value).replace(',', '.')) || 115;
+    if (!frameLocked) {
+      // Vis melding om at ramma må låses først
+      alert(currentLang === 'no' ? 
+        'Lås ramma først ved å klikke "Lås ramme"' : 
+        'Lock the frame first by clicking "Lock frame"');
+      return;
+    }
     
-    // Beregn nåværende avstand og vinkel fra bakhjul-senter til styrerør-topp
-    // Styrerør-topp er ved (RunkoL, Yep - Rt) relativt til bakhjul-senter
-    var origDx = currentRunkoL;
-    var origDy = currentYep - Rt; // Høyde over bakhjul-senter
-    var origDist = Math.sqrt(origDx * origDx + origDy * origDy);
-    var origAngle = Math.atan2(origDy, origDx); // Vinkel i radianer
-    
-    // Beregn ny vinkel basert på musepeker
+    // Beregn ny vinkel basert på musepeker fra bakhjul-senter
     var mouseDx = point.x - rearCenterX;
     var mouseDy = rearCenterY - point.y; // Y er invertert
     var newAngle = Math.atan2(mouseDy, mouseDx);
     
-    // Beregn rotasjonsendring
-    var deltaAngle = newAngle - origAngle;
-    
-    // Beregn nye koordinater for styrerør-topp med samme avstand men ny vinkel
-    var newDx = origDist * Math.cos(newAngle);
-    var newDy = origDist * Math.sin(newAngle);
+    // Beregn nye koordinater for styrerør-topp med låst avstand men ny vinkel
+    var newDx = lockedFrame.distance * Math.cos(newAngle);
+    var newDy = lockedFrame.distance * Math.sin(newAngle);
     
     // Konverter tilbake til Yep og RunkoL
     var newRunkoL = newDx;
-    var newYep = newDy + Rt;
+    var newYep = newDy + lockedFrame.Rt;
     
-    // Valider og oppdater
+    // Valider og oppdater (midlertidig aktiver feltene)
     if (newRunkoL > 50 && newRunkoL < 200 && newYep > 40 && newYep < 150) {
+      document.form1.RunkoL.disabled = false;
+      document.form1.Yep.disabled = false;
       document.form1.RunkoL.value = twoDecimals(newRunkoL);
       document.form1.Yep.value = twoDecimals(newYep);
+      document.form1.RunkoL.disabled = true;
+      document.form1.Yep.disabled = true;
       highlightField('Yep');
     }
   }
