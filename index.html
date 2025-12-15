@@ -418,6 +418,19 @@ hr {
     <td><input id="zoom" type="text" name="zoom" value="2.5" onkeyup="calculate(0);"> <span class="unit">x</span></td>
   </tr>
   <tr id="viiva"><td colspan="4"><hr></td></tr>
+  <tr>
+    <td data-no="Bunnklaring" data-en="Ground clearance">Bunnklaring</td>
+    <td><input id="maavara" type="text" name="maavara" value="8" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
+    <td data-no="Nedre ramme" data-en="Lower frame">Nedre ramme</td>
+    <td><input id="alarunko" type="text" name="alarunko" value="60" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
+  </tr>
+  <tr>
+    <td data-no="Kehto hjørne" data-en="Cradle corner">Kehto hjørne</td>
+    <td><input id="kehto" type="text" name="kehto" value="12" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr><td colspan="4"><hr></td></tr>
   <tr class="results-row">
     <td data-no="Trail" data-en="Trail">Trail</td>
     <td><input id="jatto" type="text" name="jatto" value="0" readonly> <span class="unit">cm</span></td>
@@ -935,8 +948,39 @@ function updateValuesFromGeometry(pointId, point) {
       highlightField('k');
       stored_laskentatapa = 2;
     }
+  } else if (pointId === 'frameLowerStart') {
+    // Bunnklaring - vertikal avstand fra bakken
+    var newMaavara = (groundY - point.y) / zoom;
+    if (newMaavara > 2 && newMaavara < 40) {
+      document.form1.maavara.value = twoDecimals(newMaavara);
+      highlightField('maavara');
+    }
+  } else if (pointId === 'frameLowerMid') {
+    // Nedre ramme lengde - horisontal avstand
+    var startX = nollakohtaX + Rt * zoom + Rt * zoom;
+    var newAlarunko = (point.x - startX) / zoom;
+    // Oppdater også maavara basert på y-posisjon
+    var newMaavara = (groundY - point.y) / zoom;
+    if (newAlarunko > 20 && newAlarunko < 120) {
+      document.form1.alarunko.value = twoDecimals(newAlarunko);
+      highlightField('alarunko');
+    }
+    if (newMaavara > 2 && newMaavara < 40) {
+      document.form1.maavara.value = twoDecimals(newMaavara);
+    }
+  } else if (pointId === 'frameLowerEnd') {
+    // Kehto hjørne - diagonal fra nedre ramme ende
+    var midX = controlPoints.frameLowerMid.x;
+    var midY = controlPoints.frameLowerMid.y;
+    var dx = point.x - midX;
+    var dy = midY - point.y;
+    // Bruk den minste verdien av dx og dy som kehto størrelse
+    var newKehto = Math.min(Math.abs(dx), Math.abs(dy)) / zoom;
+    if (newKehto > 4 && newKehto < 40) {
+      document.form1.kehto.value = twoDecimals(newKehto);
+      highlightField('kehto');
+    }
   }
-  // Nedre ramme-punkter er visuelle og påvirker ikke parametere direkte
 }
 
 function highlightField(fieldId) {
@@ -1170,9 +1214,12 @@ function calculate(laskentatapa)
 
 	if (document.form1.details.value == 1)	{ nollakohtaY = nollakohtaY + 50*zoom }
 	
-	var maavara = parseInt(8*zoom) ;// * zoom:
-	var alarunko = parseInt(60*zoom);
-	var kehtoputkienalareuna = parseInt(12*zoom);
+	var maavaraVal = new Number(document.form1.maavara.value.replace(',', '.'));
+	var alarunkoVal = new Number(document.form1.alarunko.value.replace(',', '.'));
+	var kehtoVal = new Number(document.form1.kehto.value.replace(',', '.'));
+	var maavara = parseInt(maavaraVal*zoom);
+	var alarunko = parseInt(alarunkoVal*zoom);
+	var kehtoputkienalareuna = parseInt(kehtoVal*zoom);
 	var emäputkenalapistey = parseInt(10*zoom);
 	var emäputkenalapistex =  Math.tan(radtodeg * RAKEep ) * emäputkenalapistey;
 	
