@@ -654,36 +654,12 @@ function toggleFrameLock() {
       }
     });
   } else {
-    // Lås opp - behold rotasjon ved å oppdatere geometrien
+    // Lås opp - behold rotasjonsvinkelen aktiv
     frameLocked = false;
     
-    // Beregn ny Yep basert på rotasjonen
-    // Rotasjonspunktet er bakhjulsenter, og vi roterer styrerør-festepunktet
-    var radtodeg = Math.PI/180;
-    var currentYep = parseFloat(document.form1.Yep.value.replace(',', '.')) || 0;
-    var RunkoL = parseFloat(document.form1.RunkoL.value.replace(',', '.')) || 0;
-    var Rt = parseFloat(document.form1.Rt.value.replace(',', '.')) * 2.54 / 2 || 0;
+    // IKKE nullstill frameRotationAngle - den skal forbli aktiv
+    // slik at tegningen forblir i rotert posisjon
     
-    // Styrerør-festepunkt relativt til bakhjulsenter (før rotasjon)
-    var dx = RunkoL; // Horisontal avstand
-    var dy = Rt - currentYep; // Vertikal avstand (negativ = over bakhjulsenter)
-    
-    // Roter dette punktet
-    var angleRad = frameRotationAngle * radtodeg;
-    var cos = Math.cos(angleRad);
-    var sin = Math.sin(angleRad);
-    var newDx = dx * cos + dy * sin;
-    var newDy = -dx * sin + dy * cos;
-    
-    // Ny Yep = Rt - newDy
-    var newYep = Rt - newDy;
-    document.form1.Yep.value = newYep.toFixed(1);
-    
-    // Oppdater også RunkoL for å matche ny X-posisjon
-    var newRunkoL = newDx;
-    document.form1.RunkoL.value = newRunkoL.toFixed(1);
-    
-    frameRotationAngle = 0; // Reset rotasjon (nå bakt inn i geometrien)
     btn.textContent = currentLang === 'no' ? 'Lås ramme' : 'Lock frame';
     btn.classList.remove('locked');
     rotDisplay.style.display = 'none';
@@ -696,7 +672,7 @@ function toggleFrameLock() {
       }
     });
     
-    // Tegn på nytt med nye verdier
+    // Tegn på nytt - rotasjonen er fortsatt aktiv
     calculate(0);
   }
 }
@@ -1665,7 +1641,8 @@ function calculate(laskentatapa)
 	// Rotasjonsfunksjon - roterer et punkt rundt bakhjul-senter
 	var pivotX = nollakohtaX + Rt;
 	var pivotY = nollakohtaY + Rt;
-	var rotAngleRad = frameLocked ? (frameRotationAngle * Math.PI / 180) : 0;
+	// Rotasjon er aktiv så lenge frameRotationAngle != 0 (uavhengig av frameLocked)
+	var rotAngleRad = (frameRotationAngle !== 0) ? (frameRotationAngle * Math.PI / 180) : 0;
 	
 	function rotatePoint(x, y, customPivotX, customPivotY, customAngle) {
 		var px = (customPivotX !== undefined) ? customPivotX : pivotX;
