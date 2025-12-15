@@ -16,111 +16,141 @@
   --text-light: #7f8c8d;
 }
 
-body { 
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
-  margin: 0; 
-  padding: 20px;
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 12px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
 }
 
-.container { 
-  max-width: 1400px; 
-  margin: 0 auto; 
-  background: white; 
-  padding: 40px;
-  border-radius: 16px; 
+.container {
+  max-width: 1600px;
+  margin: 0 auto;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
 
-h1 { 
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+h1 {
   color: var(--primary);
-  font-size: 2.5rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.8px;
+  margin: 0;
+  letter-spacing: -0.5px;
   background: linear-gradient(135deg, var(--primary), #34495e);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.lang-toggle { 
-  float: right; 
-  margin-top: -50px;
+.lang-toggle {
+  display: flex;
+  gap: 4px;
 }
 
-.lang-toggle button { 
-  padding: 10px 20px;
+.lang-toggle button {
+  padding: 6px 12px;
   cursor: pointer;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   background: white;
-  margin-left: 8px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 500;
-  transition: all 0.3s ease;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
   color: var(--text-dark);
 }
 
-.lang-toggle button:hover { 
+.lang-toggle button:hover {
   border-color: var(--accent);
-  transform: translateY(-2px);
 }
 
-.lang-toggle button.active { 
+.lang-toggle button.active {
   background: linear-gradient(135deg, var(--accent), #ff8800);
   color: white;
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(255,107,0,0.3);
+  box-shadow: 0 2px 8px rgba(255,107,0,0.3);
 }
 
-table { 
+/* Side-by-side layout */
+.main-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.inputs-panel {
+  flex: 0 0 auto;
+  min-width: 320px;
+  max-width: 420px;
+}
+
+.canvas-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* Kompakt tabell-styling */
+table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 8px;
+  border-collapse: collapse;
 }
 
-td { 
-  padding: 12px 8px;
+td {
+  padding: 4px 4px;
   vertical-align: middle;
   color: var(--text-dark);
-  font-size: 0.95rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
 }
 
 td:first-child {
   font-weight: 500;
 }
 
-input[type="text"] { 
-  padding: 10px 12px;
-  width: 90px;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.95rem;
-  transition: all 0.3s ease;
+/* Kompakte input-felter */
+input[type="text"] {
+  padding: 5px 8px;
+  width: 55px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
   background: white;
 }
 
 input[type="text"]:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255,107,0,0.1);
+  box-shadow: 0 0 0 2px rgba(255,107,0,0.1);
 }
 
-input[readonly] { 
+input[readonly] {
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
   color: var(--text-dark);
   font-weight: 600;
+  width: 50px;
 }
 
-select { 
-  padding: 10px 12px;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.95rem;
+select {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
   cursor: pointer;
   background: white;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 select:focus {
@@ -128,25 +158,79 @@ select:focus {
   border-color: var(--accent);
 }
 
-hr { 
+hr {
   border: none;
-  border-top: 2px solid var(--border);
-  margin: 16px 0;
+  border-top: 1px solid var(--border);
+  margin: 6px 0;
   opacity: 0.5;
 }
 
-.hint { 
+.hint {
   color: var(--text-light);
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   font-style: italic;
+  display: block;
+  margin-top: 1px;
+}
+
+/* Kompakte rader */
+.input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.input-group label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.input-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.unit {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+/* Resultat-rader styling */
+.results-row td:first-child {
+  color: var(--accent);
+}
+
+/* Responsiv design */
+@media (max-width: 1100px) {
+  .main-layout {
+    flex-direction: column;
+  }
+
+  .inputs-panel {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .canvas-panel {
+    width: 100%;
+  }
 }
 
 #test {
-  border: 3px solid var(--border);
-  margin-top: 30px;
+  border: 2px solid var(--border);
+  margin-top: 0;
   background: linear-gradient(to bottom, #fafafa, #ffffff);
   cursor: crosshair;
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: inset 0 2px 8px var(--shadow);
   overflow: hidden;
 }
@@ -176,23 +260,23 @@ hr {
 .control-point-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 10px;
-  padding: 12px;
+  gap: 6px 10px;
+  margin-top: 6px;
+  padding: 8px;
   background: #f8f9fa;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 6px;
+  font-size: 0.7rem;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .legend-dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
 }
 
@@ -207,20 +291,19 @@ hr {
   background: var(--accent);
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  margin: 10px 0;
-  transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(255,107,0,0.3);
+  margin: 8px 0;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(255,107,0,0.3);
 }
 
 .edit-mode-btn:hover {
   background: #ff8533;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255,107,0,0.4);
+  box-shadow: 0 4px 12px rgba(255,107,0,0.4);
 }
 
 .edit-mode-btn.active {
@@ -270,24 +353,27 @@ hr {
 <body>
 
 <div class="container">
-<h1 data-no="Geometrikalkulator for motorsykkel" data-en="Motorcycle Geometry Calculator">Geometrikalkulator for motorsykkel</h1>
-<div class="lang-toggle">
-  <button id="btnNo" class="active" onclick="setLang('no')">Norsk</button>
-  <button id="btnEn" onclick="setLang('en')">English</button>
+<div class="header-row">
+  <h1 data-no="Geometrikalkulator for motorsykkel" data-en="Motorcycle Geometry Calculator">Geometrikalkulator for motorsykkel</h1>
+  <div class="lang-toggle">
+    <button id="btnNo" class="active" onclick="setLang('no')">Norsk</button>
+    <button id="btnEn" onclick="setLang('en')">English</button>
+  </div>
 </div>
 
 <form action="#" name="form1" method="post">
+<div class="main-layout">
+<div class="inputs-panel">
 <table>
   <tr>
-    <td width="240" data-no="Gaffeltype" data-en="Fork type">Gaffeltype</td>
-    <td width="185">
+    <td data-no="Gaffeltype" data-en="Fork type">Gaffeltype</td>
+    <td>
       <select id="KTyyppi" name="KTyyppi" onchange="keulavaihdos();">
         <option value="T" data-no="Teleskop" data-en="Telescopic">Teleskop</option>
         <option value="S" data-no="Springer" data-en="Springer">Springer</option>
       </select>
     </td>
-    <td width="40"></td>
-    <td data-no="Vis detaljer" data-en="Show details">Vis detaljer<br><span class="hint" data-no="(tank, motor osv.)" data-en="(tank, engine etc.)">(tank, motor osv.)</span></td>
+    <td data-no="Detaljer" data-en="Details">Detaljer</td>
     <td>
       <select name="details" onchange="calculate(0);">
         <option value="0" data-no="Nei" data-en="No">Nei</option>
@@ -295,72 +381,58 @@ hr {
       </select>
     </td>
   </tr>
-  <tr><td colspan="5"><hr></td></tr>
+  <tr><td colspan="4"><hr></td></tr>
   <tr>
-    <td data-no="Styreakselens høyde fra bakken" data-en="Steering axis height from ground">Styreakselens høyde fra bakken<br>
-      <span class="hint" data-no="(Målt fra toppen av T-stykket)" data-en="(Measured from top of triple clamp)">(Målt fra toppen av T-stykket)</span></td>
-    <td><input id="Yep" type="text" name="Yep" value="88" onkeyup="calculate(1);"> cm</td>
-    <td><strong data-no="eller" data-en="or">eller</strong></td>
-    <td data-no="Gaffellengde" data-en="Fork length">Gaffellengde<br>
-      <span class="hint" data-no="(Fra T-stykke til aksel)" data-en="(From triple clamp to axle)">(Fra T-stykke til aksel)</span></td>
-    <td><input id="k" type="text" name="k" value="0" onkeyup="calculate(2);"> cm</td>
+    <td data-no="Styreaksel høyde" data-en="Steering height">Styreaksel høyde<span class="hint" data-no="(fra bakken)" data-en="(from ground)">(fra bakken)</span></td>
+    <td><input id="Yep" type="text" name="Yep" value="88" onkeyup="calculate(1);"> <span class="unit">cm</span></td>
+    <td data-no="Gaffellengde" data-en="Fork length">Gaffellengde<span class="hint" data-no="(T→aksel)" data-en="(T→axle)">(T→aksel)</span></td>
+    <td><input id="k" type="text" name="k" value="0" onkeyup="calculate(2);"> <span class="unit">cm</span></td>
   </tr>
   <tr>
-    <td data-no="Styrerørs rake (vinkel)" data-en="Steering head rake (angle)">Styrerørs rake (vinkel)</td>
-    <td><input id="RAKEep" type="text" name="RAKEep" value="41" onkeyup="calculate(0);"> °</td>
-    <td></td>
+    <td data-no="Styrerør rake" data-en="Head tube rake">Styrerør rake</td>
+    <td><input id="RAKEep" type="text" name="RAKEep" value="41" onkeyup="calculate(0);"> <span class="unit">°</span></td>
     <td data-no="T-stykke vinkel" data-en="Triple clamp angle">T-stykke vinkel</td>
-    <td><input id="RAKEtk" type="text" name="RAKEtk" value="6" onkeyup="calculate(0);"> °</td>
+    <td><input id="RAKEtk" type="text" name="RAKEtk" value="6" onkeyup="calculate(0);"> <span class="unit">°</span></td>
   </tr>
   <tr id="springu" style="display:none;">
-    <td data-no="Nedre lenke lengde (Springer)" data-en="Lower link length (Springer)">Nedre lenke lengde (Springer)<br>
-      <span class="hint" data-no="(Avstand fra bakre springer-lager til styreaksel)" data-en="(Distance from rear springer bearing to steering axis)">(Avstand fra bakre springer-lager til styreaksel)</span></td>
-    <td><input id="ALOffset" type="text" name="ALOffset" value="0" onkeyup="calculate(0);"> cm</td>
-    <td></td><td></td><td></td>
+    <td colspan="2" data-no="Nedre lenke (Springer)" data-en="Lower link (Springer)">Nedre lenke (Springer)</td>
+    <td colspan="2"><input id="ALOffset" type="text" name="ALOffset" value="0" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
   </tr>
   <tr id="hydra">
-    <td data-no="T-stykke offset" data-en="Triple clamp offset">T-stykke offset<br>
-      <span class="hint" data-no="(Avstand mellom styreaksel og gaffelrør)" data-en="(Distance between steering axis and fork tubes)">(Avstand mellom styreaksel og gaffelrør)</span></td>
-    <td><input id="TKOffset" type="text" name="TKOffset" value="5" onkeyup="calculate(0);"> cm</td>
-    <td></td><td></td><td></td>
+    <td colspan="2" data-no="T-stykke offset" data-en="Triple clamp offset">T-stykke offset</td>
+    <td colspan="2"><input id="TKOffset" type="text" name="TKOffset" value="5" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
   </tr>
-  <tr><td colspan="5"><hr></td></tr>
+  <tr><td colspan="4"><hr></td></tr>
   <tr>
-    <td data-no="Forhjulets radius" data-en="Front wheel radius">Forhjulets radius</td>
-    <td><input id="Re" type="text" value="34,5" name="Re" onkeyup="calculate(0);"> cm</td>
-    <td></td>
-    <td data-no="Bakhjulets radius" data-en="Rear wheel radius">Bakhjulets radius</td>
-    <td><input id="Rt" type="text" value="32,5" name="Rt" onkeyup="calculate(0);"> cm</td>
+    <td data-no="Forhjul radius" data-en="Front wheel radius">Forhjul radius</td>
+    <td><input id="Re" type="text" value="34,5" name="Re" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
+    <td data-no="Bakhjul radius" data-en="Rear wheel radius">Bakhjul radius</td>
+    <td><input id="Rt" type="text" value="32,5" name="Rt" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
   </tr>
   <tr>
-    <td data-no="Gaffelrørs lengde" data-en="Fork tube length">Gaffelrørs lengde</td>
-    <td><input id="KPOpit" type="text" name="KPOpit" value="72" onkeyup="calculate(0);"> cm</td>
-    <td></td>
-    <td data-no="Avstand styrerør til bakaksel" data-en="Steering head to rear axle">Avstand styrerør til bakaksel</td>
-    <td><input id="RunkoL" type="text" name="RunkoL" value="115" onkeyup="calculate(0);"> cm</td>
+    <td data-no="Gaffelrør lengde" data-en="Fork tube length">Gaffelrør lengde</td>
+    <td><input id="KPOpit" type="text" name="KPOpit" value="72" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
+    <td data-no="Ramme lengde" data-en="Frame length">Ramme lengde</td>
+    <td><input id="RunkoL" type="text" name="RunkoL" value="115" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
   </tr>
-  <tr><td colspan="5"><hr></td></tr>
+  <tr><td colspan="4"><hr></td></tr>
   <tr id="detailit">
     <td data-no="Linjetykkelse" data-en="Line width">Linjetykkelse</td>
     <td><input id="linewidth" type="text" name="linewidth" value="3" onkeyup="calculate(0);"></td>
-    <td></td>
     <td data-no="Zoom" data-en="Zoom">Zoom</td>
-    <td><input id="zoom" type="text" name="zoom" value="3" onkeyup="calculate(0);"> x</td>
+    <td><input id="zoom" type="text" name="zoom" value="2.5" onkeyup="calculate(0);"> <span class="unit">x</span></td>
   </tr>
-  <tr id="viiva"><td colspan="5"><hr></td></tr>
-  <tr>
+  <tr id="viiva"><td colspan="4"><hr></td></tr>
+  <tr class="results-row">
     <td data-no="Trail" data-en="Trail">Trail</td>
-    <td><input id="jatto" type="text" name="jatto" value="0" readonly> cm</td>
-    <td></td>
-    <td data-no="Øvre rør lengde (estimat)" data-en="Upper tube length (estimate)">Øvre rør lengde (estimat)<br>
-      <span class="hint" data-no="(Avhenger av T-stykkets design)" data-en="(Depends on triple clamp design)">(Avhenger av T-stykkets design)</span></td>
-    <td><input id="Text10" type="text" name="yptp" value="" readonly> "</td>
-  </tr>
-  <tr>
+    <td><input id="jatto" type="text" name="jatto" value="0" readonly> <span class="unit">cm</span></td>
     <td data-no="Akselavstand" data-en="Wheelbase">Akselavstand</td>
-    <td><input id="Text9" type="text" name="av" value="" readonly> cm</td>
-    <td></td>
-    <td data-no="Vis beregninger i tegningen" data-en="Show calculations in drawing">Vis beregninger i tegningen</td>
+    <td><input id="Text9" type="text" name="av" value="" readonly> <span class="unit">cm</span></td>
+  </tr>
+  <tr class="results-row">
+    <td data-no="Øvre rør" data-en="Upper tube">Øvre rør<span class="hint" data-no="(estimat)" data-en="(estimate)">(estimat)</span></td>
+    <td><input id="Text10" type="text" name="yptp" value="" readonly> <span class="unit">"</span></td>
+    <td data-no="Vis beregninger" data-en="Show calcs">Vis beregninger</td>
     <td>
       <select name="calcvalues" onchange="calculate(0);">
         <option value="1" data-no="Ja" data-en="Yes">Ja</option>
@@ -368,7 +440,7 @@ hr {
       </select>
     </td>
   </tr>
-  <tr><td colspan="5"><hr></td></tr>
+  <tr><td colspan="4"><hr></td></tr>
 </table>
 
 <button type="button" class="edit-mode-btn" onclick="toggleEditMode()" id="editModeBtn" data-no="Aktiver redigeringsmodus" data-en="Enable Edit Mode">Aktiver redigeringsmodus</button>
@@ -381,10 +453,15 @@ hr {
   <div class="legend-item"><span class="legend-dot" style="background:#1abc9c;"></span><span data-no="Ramme lengde" data-en="Frame length">Ramme lengde</span></div>
   <div class="legend-item"><span class="legend-dot" style="background:#e67e22;"></span><span data-no="Gaffel lengde" data-en="Fork length">Gaffel lengde</span></div>
 </div>
+</div><!-- end inputs-panel -->
 
+<div class="canvas-panel">
 <div id="canvas-container">
-<div id="test" style="position:relative;left:0px;top:0px;width:1200px;height:700px;z-index:2;overflow:visible;" onclick="handleCanvasClick(event)"></div>
+<div id="test" style="position:relative;left:0px;top:0px;width:900px;height:500px;z-index:2;overflow:visible;" onclick="handleCanvasClick(event)"></div>
 </div>
+</div><!-- end canvas-panel -->
+
+</div><!-- end main-layout -->
 </form>
 </div>	
 
