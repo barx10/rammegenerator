@@ -1237,20 +1237,41 @@ function updateValuesFromGeometry(pointId, point) {
       highlightField('alarunkoAngle');
     }
   } else if (pointId === 'frameRotation') {
-    // Rammerotasjon - dra opp/ned for å endre rake
-    // Beregn vinkel fra bakhjul-senter til musepeker
-    var dx = point.x - rearCenterX;
-    var dy = rearCenterY - point.y; // Y er invertert i canvas
+    // Rammerotasjon - roterer hele ramma rundt bakhjul-senter
+    // Alle parametere justeres proporsjonalt
     
-    // Beregn vinkel fra horisontal
-    var angleFromHorizontal = Math.atan2(dy, dx) * (180 / Math.PI);
-    // Konverter til rake (90 - vinkel)
-    var newRake = 90 - angleFromHorizontal;
+    // Hent nåværende styrerør-posisjon i forhold til bakhjul-senter
+    var currentYep = parseFloat(String(document.form1.Yep.value).replace(',', '.')) || 88;
+    var currentRunkoL = parseFloat(String(document.form1.RunkoL.value).replace(',', '.')) || 115;
     
-    // Begrens til fornuftige verdier (15-70 grader)
-    if (newRake >= 15 && newRake <= 70) {
-      document.form1.RAKEep.value = twoDecimals(newRake);
-      highlightField('RAKEep');
+    // Beregn nåværende avstand og vinkel fra bakhjul-senter til styrerør-topp
+    // Styrerør-topp er ved (RunkoL, Yep - Rt) relativt til bakhjul-senter
+    var origDx = currentRunkoL;
+    var origDy = currentYep - Rt; // Høyde over bakhjul-senter
+    var origDist = Math.sqrt(origDx * origDx + origDy * origDy);
+    var origAngle = Math.atan2(origDy, origDx); // Vinkel i radianer
+    
+    // Beregn ny vinkel basert på musepeker
+    var mouseDx = point.x - rearCenterX;
+    var mouseDy = rearCenterY - point.y; // Y er invertert
+    var newAngle = Math.atan2(mouseDy, mouseDx);
+    
+    // Beregn rotasjonsendring
+    var deltaAngle = newAngle - origAngle;
+    
+    // Beregn nye koordinater for styrerør-topp med samme avstand men ny vinkel
+    var newDx = origDist * Math.cos(newAngle);
+    var newDy = origDist * Math.sin(newAngle);
+    
+    // Konverter tilbake til Yep og RunkoL
+    var newRunkoL = newDx;
+    var newYep = newDy + Rt;
+    
+    // Valider og oppdater
+    if (newRunkoL > 50 && newRunkoL < 200 && newYep > 40 && newYep < 150) {
+      document.form1.RunkoL.value = twoDecimals(newRunkoL);
+      document.form1.Yep.value = twoDecimals(newYep);
+      highlightField('Yep');
     }
   }
 }
