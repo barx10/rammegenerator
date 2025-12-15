@@ -1085,7 +1085,7 @@ function updateValuesFromGeometry(pointId, point) {
       highlightField('RunkoL');
     }
   } else if (pointId === 'seatKink') {
-    // Seteknekk - hvor mye øvre rør knekkes opp
+    // Seteknekk - hvor mye øvre rør knekkes ned (positiv = ned)
     var topEndX = controlPoints.frameTopEnd.x;
     var topEndY = controlPoints.frameTopEnd.y;
     var rearTopX = rearCenterX;
@@ -1093,9 +1093,9 @@ function updateValuesFromGeometry(pointId, point) {
     var kinkT = 0.42;
     var kinkBaseX = rearTopX + (topEndX - rearTopX) * kinkT;
     var kinkBaseY = rearTopY + (topEndY - rearTopY) * kinkT;
-    // seteH er positiv når vi drar punktet opp (mindre y)
-    var newSeteH = (kinkBaseY - point.y) / zoom;
-    if (newSeteH >= 0 && newSeteH <= 60) {
+    // seteH er positiv når vi drar punktet ned (større y)
+    var newSeteH = (point.y - kinkBaseY) / zoom;
+    if (newSeteH >= -30 && newSeteH <= 60) {
       document.form1.seteH.value = twoDecimals(newSeteH);
       highlightField('seteH');
     }
@@ -1458,8 +1458,8 @@ function calculate(laskentatapa)
   var kinkBaseX = rearTopX + (topEndX - rearTopX) * kinkT;
   var kinkBaseY = rearTopY + (topEndY - rearTopY) * kinkT;
   var seteH = parseFloat(String(document.form1.seteH.value).replace(',', '.')) || 0;
-  seteH = Math.max(0, Math.min(60, seteH));
-  var kinkY = kinkBaseY - (seteH * zoom);
+  seteH = Math.max(-30, Math.min(60, seteH));
+  var kinkY = kinkBaseY + (seteH * zoom);
   var kinkX = kinkBaseX;
   // Tegn to segmenter i stedet for en rett linje
   jg_doc.drawLine(rearTopX, rearTopY, kinkX, kinkY);
