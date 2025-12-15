@@ -517,7 +517,11 @@ var controlPoints = {
 
   // Gaffel/T-stykke hjørner
   tripleClampTop: { x: 0, y: 0, dragging: false, label: 'T-stykke offset', field: 'TKOffset', color: '#e67e22', cursor: 'move' },
-  forkBottom: { x: 0, y: 0, dragging: false, label: 'Gaffellengde', field: 'k', color: '#e67e22', cursor: 'move' }
+  forkBottom: { x: 0, y: 0, dragging: false, label: 'Gaffellengde', field: 'k', color: '#e67e22', cursor: 'move' },
+
+  // Motor og tank (draggbare bilder)
+  motorImage: { x: 0, y: 0, dragging: false, label: 'Motor', type: 'image', imageKey: 'motor', color: '#f39c12', cursor: 'move' },
+  tankImage: { x: 0, y: 0, dragging: false, label: 'Tank', type: 'image', imageKey: 'tank', color: '#f39c12', cursor: 'move' }
 };
 var draggedPoint = null;
 var isDragging = false;
@@ -703,21 +707,44 @@ function setupCanvasEventListeners() {
     var hitRadius = 16;
     for (var key in controlPoints) {
       var p = controlPoints[key];
-      var dx = mx - p.x;
-      var dy = my - p.y;
-      if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
-        e.preventDefault();
-        e.stopPropagation();
-        draggedPoint = key;
-        isDragging = true;
-        var testDiv = document.getElementById('test');
-        if (testDiv) testDiv.classList.add('dragging');
-        // Highlight det relaterte feltet
-        var cp = controlPoints[key];
-        if (cp.field) {
-          highlightField(cp.field);
+      
+      // Spesialhåndtering for bilder (motor/tank)
+      if (p.type === 'image' && p.imageKey) {
+        var img = draggableElements[p.imageKey];
+        var zoom = parseFloat(document.form1.zoom.value) || 3;
+        var imgW = img.width * zoom * img.scale;
+        var imgH = img.height * zoom * img.scale;
+        
+        // Sjekk om klikk er innenfor bildets bounding box
+        if (mx >= img.x && mx <= img.x + imgW && my >= img.y && my <= img.y + imgH) {
+          e.preventDefault();
+          e.stopPropagation();
+          draggedPoint = key;
+          isDragging = true;
+          dragStart.x = mx - img.x;
+          dragStart.y = my - img.y;
+          var testDiv = document.getElementById('test');
+          if (testDiv) testDiv.classList.add('dragging');
+          return;
         }
-        return;
+      } else {
+        // Normal punktsjekk
+        var dx = mx - p.x;
+        var dy = my - p.y;
+        if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+          e.preventDefault();
+          e.stopPropagation();
+          draggedPoint = key;
+          isDragging = true;
+          var testDiv = document.getElementById('test');
+          if (testDiv) testDiv.classList.add('dragging');
+          // Highlight det relaterte feltet
+          var cp = controlPoints[key];
+          if (cp.field) {
+            highlightField(cp.field);
+          }
+          return;
+        }
       }
     }
   });
@@ -772,6 +799,17 @@ document.addEventListener('mousemove', function(e) {
   // Hvis vi drar et punkt
   if (draggedPoint) {
     var point = controlPoints[draggedPoint];
+    
+    // Spesialhåndtering for bilder
+    if (point.type === 'image' && point.imageKey) {
+      var img = draggableElements[point.imageKey];
+      img.x = mx - dragStart.x;
+      img.y = my - dragStart.y;
+      saveElementPositions();
+      calculate(0);
+      return;
+    }
+    
     point.x = mx;
     point.y = my;
     isDragging = true;
@@ -787,12 +825,27 @@ document.addEventListener('mousemove', function(e) {
   var hovering = false;
   for (var key in controlPoints) {
     var p = controlPoints[key];
-    var dx = mx - p.x;
-    var dy = my - p.y;
-    if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
-      hovering = true;
-      testDiv.style.cursor = p.cursor || 'grab';
-      break;
+    
+    // Spesialsjekk for bilder
+    if (p.type === 'image' && p.imageKey) {
+      var img = draggableElements[p.imageKey];
+      var zoom = parseFloat(document.form1.zoom.value) || 3;
+      var imgW = img.width * zoom * img.scale;
+      var imgH = img.height * zoom * img.scale;
+      
+      if (mx >= img.x && mx <= img.x + imgW && my >= img.y && my <= img.y + imgH) {
+        hovering = true;
+        testDiv.style.cursor = 'move';
+        break;
+      }
+    } else {
+      var dx = mx - p.x;
+      var dy = my - p.y;
+      if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+        hovering = true;
+        testDiv.style.cursor = p.cursor || 'grab';
+        break;
+      }
     }
   }
   if (!hovering && !draggedPoint) {
@@ -810,12 +863,42 @@ document.addEventListener('mouseup', function(e) {
     }
     // Fjern field highlighting etter kort pause
     setTimeout(function() {
-      if (!draggedPoint) {
-        document.querySelectorAll('.field-highlight').forEach(function(el) {
-          el.classList.remove('field-highlight');
-        });
+      var highlighted = document.querySelectorAll('.highlight-field');
+      highlighted.forEach(function(el) { el.classList.remove('highlight-field'); });
+    }, 500);
+  }
+});
+
+// Scroll-hjul for å resize motor og tank
+canvas.addEventListener('wheel', function(e) {
+  if (!editMode) return;
+  
+  var rect = canvas.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+  
+  // Sjekk om vi er over motor eller tank
+  var zoom = parseFloat(document.form1.zoom.value) || 3;
+  
+  for (var key in controlPoints) {
+    var p = controlPoints[key];
+    if (p.type === 'image' && p.imageKey) {
+      var img = draggableElements[p.imageKey];
+      var imgW = img.width * zoom * img.scale;
+      var imgH = img.height * zoom * img.scale;
+      
+      if (mx >= img.x && mx <= img.x + imgW && my >= img.y && my <= img.y + imgH) {
+        e.preventDefault();
+        
+        // Endre scale med scroll
+        var delta = e.deltaY > 0 ? -0.1 : 0.1;
+        img.scale = Math.max(0.2, Math.min(3, img.scale + delta));
+        
+        saveElementPositions();
+        calculate(0);
+        return;
       }
-    }, 1500);
+    }
   }
 });
 
@@ -1263,6 +1346,12 @@ function calculate(laskentatapa)
 		var motorY = motor.y || (nollakohtaY+4*zoom);
 		if (!motor.x) { motor.x = motorX; motor.y = motorY; }
 		jg_doc.drawImage("motor.png", motorX, motorY, motor.width*zoom*motor.scale, motor.height*zoom*motor.scale);  //Motor
+		
+		// Oppdater motor control point
+		if (!draggedPoint || draggedPoint !== 'motorImage') {
+			controlPoints.motorImage.x = motorX;
+			controlPoints.motorImage.y = motorY;
+		}
 	}
 		
 	jg_doc.drawEllipse(nollakohtaX, nollakohtaY, 2*Rt, 2*Rt); // takakumi
@@ -1334,6 +1423,12 @@ if (document.form1.details.value == 1)	{
 	var tankY = tank.y || (nollakohtaY+Rt+Rt-Yep);
 	if (!tank.x) { tank.x = tankX; tank.y = tankY; }
 	jg_doc.drawImage("tank.png", tankX, tankY, tank.width*zoom*tank.scale, tank.height*zoom*tank.scale);  //Tank
+	
+	// Oppdater tank control point
+	if (!draggedPoint || draggedPoint !== 'tankImage') {
+		controlPoints.tankImage.x = tankX;
+		controlPoints.tankImage.y = tankY;
+	}
 		jg_doc.drawEllipse(nollakohtaX+Rt+RunkoL+Xtk+Xk-Re+ALOffset+7*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+Yk-Re+7*zoom, 2*Re-14*zoom, 2*Re-14*zoom); // etuvanne
 		jg_doc.drawEllipse(nollakohtaX+10*zoom, nollakohtaY+10*zoom, 2*Rt-20*zoom, 2*Rt-20*zoom); // takavanne
 		jg_doc.setColor("#95a5a6");
