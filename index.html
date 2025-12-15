@@ -686,14 +686,9 @@ var draggableElements = {
 var dragStart = { x: 0, y: 0 };
 var currentElement = null;
 
-// Geometry control points - alle draggbare punkter på rammen (alle hjørner)
+// Geometry control points - draggbare punkter på rammen
 var controlPoints = {
-  // Hjul-sentre (kan dras for å endre radius)
-  rearWheelTop: { x: 0, y: 0, dragging: false, label: 'Bakhjul diameter', field: 'Rt', color: '#27ae60', cursor: 'ns-resize' },
-  frontWheelTop: { x: 0, y: 0, dragging: false, label: 'Forhjul diameter', field: 'Re', color: '#27ae60', cursor: 'ns-resize' },
-
-  // Styrerør hjørner
-  steeringHeadTop: { x: 0, y: 0, dragging: false, label: 'Styrerør høyde', field: 'Yep', color: '#3498db', cursor: 'move' },
+  // Styrerør bunn (for rake-vinkel)
   steeringHeadBottom: { x: 0, y: 0, dragging: false, label: 'Styrerør bunn', field: 'RAKEep', color: '#3498db', cursor: 'move' },
 
   // Rake-vinkel håndtak
@@ -705,14 +700,12 @@ var controlPoints = {
   // Knekk på øvre rammerør (for setehøyde)
   seatKink: { x: 0, y: 0, dragging: false, label: 'Seteknekk', field: 'seteH', color: '#1abc9c', cursor: 'move' },
 
-  // Ramme hjørner (nedre linje) - justerbar vinkel
-  frameLowerStart: { x: 0, y: 0, dragging: false, label: 'Bunnklaring', field: 'maavara', color: '#e74c3c', cursor: 'move' },
+  // Ramme hjørner (nedre linje)
   frameLowerMid: { x: 0, y: 0, dragging: false, label: 'Nedre ramme', field: 'alarunko', color: '#e74c3c', cursor: 'ew-resize' },
   frameLowerEnd: { x: 0, y: 0, dragging: false, label: 'Kehto hjørne', field: 'kehto', color: '#e74c3c', cursor: 'move' },
   frameLowerAngle: { x: 0, y: 0, dragging: false, label: 'Nedre ramme vinkel', field: 'alarunkoAngle', color: '#c0392b', cursor: 'grab' },
 
-  // Gaffel/T-stykke hjørner
-  tripleClampTop: { x: 0, y: 0, dragging: false, label: 'T-stykke offset', field: 'TKOffset', color: '#e67e22', cursor: 'move' },
+  // Gaffellengde
   forkBottom: { x: 0, y: 0, dragging: false, label: 'Gaffellengde', field: 'k', color: '#e67e22', cursor: 'move' },
 
   // Rammerotasjon (eget punkt for å rotere hele ramma)
@@ -737,32 +730,26 @@ function getCssVar(name, fallback) {
 
 // Hold legend og prikkefarger i sync (én kilde: CSS-variabler)
 (function syncControlPointColorsFromCss() {
-  var wheel = getCssVar('--cp-wheel', controlPoints.rearWheelTop.color);
-  var steering = getCssVar('--cp-steering', controlPoints.steeringHeadTop.color);
+  var steering = getCssVar('--cp-steering', controlPoints.steeringHeadBottom.color);
   var rake = getCssVar('--cp-rake', controlPoints.rakeHandle.color);
   var frameTop = getCssVar('--cp-frame-top', controlPoints.frameTopEnd.color);
-  var frameBottom = getCssVar('--cp-frame-bottom', controlPoints.frameLowerStart.color);
+  var frameBottom = getCssVar('--cp-frame-bottom', controlPoints.frameLowerMid.color);
   var frameAngle = getCssVar('--cp-frame-angle', controlPoints.frameLowerAngle.color);
-  var fork = getCssVar('--cp-fork', controlPoints.tripleClampTop.color);
+  var fork = getCssVar('--cp-fork', controlPoints.forkBottom.color);
   var image = getCssVar('--cp-image', controlPoints.motorImage.color);
 
-  controlPoints.rearWheelTop.color = wheel;
-  controlPoints.frontWheelTop.color = wheel;
-
-  controlPoints.steeringHeadTop.color = steering;
   controlPoints.steeringHeadBottom.color = steering;
 
   controlPoints.rakeHandle.color = rake;
 
   controlPoints.frameTopEnd.color = frameTop;
+  controlPoints.seatKink.color = frameTop;
 
-  controlPoints.frameLowerStart.color = frameBottom;
   controlPoints.frameLowerMid.color = frameBottom;
   controlPoints.frameLowerEnd.color = frameBottom;
 
   controlPoints.frameLowerAngle.color = frameAngle;
 
-  controlPoints.tripleClampTop.color = fork;
   controlPoints.forkBottom.color = fork;
 
   var rotation = getCssVar('--cp-rotation', controlPoints.frameRotation.color);
@@ -950,10 +937,10 @@ function setupCanvasEventListeners() {
     var my = e.clientY - rect.top;
 
     // Sjekk om vi klikket på et kontrollpunkt
-    var hitRadius = 16;
+    var hitRadius = 24;
     for (var key in controlPoints) {
       var p = controlPoints[key];
-      
+
       // Spesialhåndtering for bilder (motor/tank)
       if (p.type === 'image' && p.imageKey) {
         var img = draggableElements[p.imageKey];
@@ -1044,7 +1031,7 @@ document.addEventListener('mousedown', function(e) {
   if (mx < 0 || my < 0 || mx > rect.width || my > rect.height) return;
 
   // Sjekk om vi klikket på et kontrollpunkt
-  var hitRadius = 16;
+  var hitRadius = 24;
   for (var key in controlPoints) {
     var p = controlPoints[key];
     var dx = mx - p.x;
@@ -1100,7 +1087,7 @@ document.addEventListener('mousemove', function(e) {
   }
 
   // Sjekk om vi hover over et kontrollpunkt (for cursor feedback)
-  var hitRadius = 14;
+  var hitRadius = 24;
   var hovering = false;
   for (var key in controlPoints) {
     var p = controlPoints[key];
@@ -1205,30 +1192,7 @@ function updateValuesFromGeometry(pointId, point) {
   var steeringHeadX = nollakohtaX + Rt * zoom + RunkoL * zoom;
   var steeringHeadY = nollakohtaY + Rt * zoom + Rt * zoom - Yep * zoom;
 
-  if (pointId === 'rearWheelTop') {
-    // Bakhjul topp - endre diameter (radius cm til diameter tommer)
-    var newRtCm = (groundY - point.y) / zoom;
-    var newRt = newRtCm * 2 / 2.54;
-    if (newRt > 15 && newRt < 40) {
-      document.form1.Rt.value = twoDecimals(newRt);
-      highlightField('Rt');
-    }
-  } else if (pointId === 'frontWheelTop') {
-    // Forhjul topp - endre diameter (radius cm til diameter tommer)
-    var newReCm = (groundY - point.y) / zoom;
-    var newRe = newReCm * 2 / 2.54;
-    if (newRe > 15 && newRe < 40) {
-      document.form1.Re.value = twoDecimals(newRe);
-      highlightField('Re');
-    }
-  } else if (pointId === 'steeringHeadTop') {
-    // Styrerør topp - kun høyde (Yep), RunkoL forblir uendret
-    var newYep = (groundY - point.y) / zoom;
-    if (newYep > 40 && newYep < 150) {
-      document.form1.Yep.value = twoDecimals(newYep);
-      highlightField('Yep');
-    }
-  } else if (pointId === 'steeringHeadBottom') {
+  if (pointId === 'steeringHeadBottom') {
     // Styrerør bunn - juster rake ved å dra
     var dx = point.x - steeringHeadX;
     var dy = point.y - steeringHeadY;
@@ -1238,11 +1202,9 @@ function updateValuesFromGeometry(pointId, point) {
       highlightField('RAKEep');
     }
   } else if (pointId === 'rakeHandle') {
-    // Rake-vinkel håndtak
-    var shX = controlPoints.steeringHeadTop.x;
-    var shY = controlPoints.steeringHeadTop.y;
-    var dx = point.x - shX;
-    var dy = shY - point.y;
+    // Rake-vinkel håndtak - bruk beregnet styrerør-posisjon
+    var dx = point.x - steeringHeadX;
+    var dy = steeringHeadY - point.y;
     var newAngle = Math.atan2(dx, dy) * (180 / Math.PI);
     if (newAngle < 0) newAngle = -newAngle;
     if (newAngle > 15 && newAngle < 70) {
@@ -1283,20 +1245,13 @@ function updateValuesFromGeometry(pointId, point) {
       document.form1.seteH.value = twoDecimals(newSeteH);
       highlightField('seteH');
     }
-  } else if (pointId === 'tripleClampTop') {
-    // T-stykke topp - offset
-    var radtodeg = Math.PI / 180;
-    var dx = point.x - steeringHeadX;
-    var dy = steeringHeadY - point.y;
-    var dist = Math.sqrt(dx * dx + dy * dy) / zoom;
-    if (dist > 0 && dist < 30) {
-      document.form1.TKOffset.value = twoDecimals(dist);
-      highlightField('TKOffset');
-    }
   } else if (pointId === 'forkBottom') {
-    // Gaffellengde - beregn ny k basert på avstand fra T-stykke topp
-    var tcX = controlPoints.tripleClampTop.x;
-    var tcY = controlPoints.tripleClampTop.y;
+    // Gaffellengde - beregn ny k basert på avstand fra styrerør-posisjon
+    var TKOffset = parseFloat(String(document.form1.TKOffset.value).replace(',', '.')) || 5;
+    var radtodeg = Math.PI / 180;
+    // Beregn T-stykke topp posisjon
+    var tcX = steeringHeadX + TKOffset * zoom * Math.sin(RAKEep * radtodeg);
+    var tcY = steeringHeadY - TKOffset * zoom * Math.cos(RAKEep * radtodeg);
     var dx = point.x - tcX;
     var dy = point.y - tcY;
     var newK = Math.sqrt(dx * dx + dy * dy) / zoom;
@@ -1304,13 +1259,6 @@ function updateValuesFromGeometry(pointId, point) {
       document.form1.k.value = twoDecimals(newK);
       highlightField('k');
       stored_laskentatapa = 2;
-    }
-  } else if (pointId === 'frameLowerStart') {
-    // Bunnklaring - vertikal avstand fra bakken
-    var newMaavara = (groundY - point.y) / zoom;
-    if (newMaavara > 2 && newMaavara < 40) {
-      document.form1.maavara.value = twoDecimals(newMaavara);
-      highlightField('maavara');
     }
   } else if (pointId === 'frameLowerMid') {
     // Nedre ramme lengde - kun horisontal avstand (alarunko)
@@ -1334,8 +1282,9 @@ function updateValuesFromGeometry(pointId, point) {
     }
   } else if (pointId === 'frameLowerAngle') {
     // Nedre ramme vinkel - beregn vinkel fra startpunkt til musepeker
-    var startX = controlPoints.frameLowerStart.x;
-    var startY = controlPoints.frameLowerStart.y;
+    var maavara = parseFloat(String(document.form1.maavara.value).replace(',', '.')) || 8;
+    var startX = nollakohtaX + Rt * zoom + Rt * zoom;
+    var startY = groundY - maavara * zoom;
     var dx = point.x - startX;
     var dy = startY - point.y;
     // Beregn vinkel (positiv = oppover)
@@ -1703,30 +1652,18 @@ function calculate(laskentatapa)
 	
 	// Oppdater control points posisjoner for alle draggbare hjørner
 	if (!draggedPoint) {
-		// Bakhjul topp (for å justere radius)
-		controlPoints.rearWheelTop.x = nollakohtaX + Rt;
-		controlPoints.rearWheelTop.y = nollakohtaY;
-
-		// Forhjul topp (for å justere radius)
-		if (document.form1.KTyyppi.value == 'T') {
-			controlPoints.frontWheelTop.x = nollakohtaX + Rt + RunkoL + Xtk + Xk;
-		} else {
-			controlPoints.frontWheelTop.x = nollakohtaX + Rt + RunkoL + Xtk + Xk + ALOffset;
-		}
-		controlPoints.frontWheelTop.y = nollakohtaY + Rt + Rt - Yep - Ytk + Yk - Re;
-
-		// Styrerør topp (hovedhjørne)
-		controlPoints.steeringHeadTop.x = nollakohtaX + Rt + RunkoL;
-		controlPoints.steeringHeadTop.y = nollakohtaY + Rt + Rt - Yep;
-
 		// Styrerør bunn (emäputki ende)
 		controlPoints.steeringHeadBottom.x = nollakohtaX + Rt + RunkoL + emäputkenalapistex;
 		controlPoints.steeringHeadBottom.y = nollakohtaY + Rt + Rt - Yep + emäputkenalapistey;
 
+		// Styrerør topp posisjon (for beregninger, ikke et kontrollpunkt)
+		var steeringHeadTopX = nollakohtaX + Rt + RunkoL;
+		var steeringHeadTopY = nollakohtaY + Rt + Rt - Yep;
+
 		// Rake-vinkel håndtak (på linjen fra styrerør oppover)
 		var rakeHandleLen = 60;
-		controlPoints.rakeHandle.x = controlPoints.steeringHeadTop.x - Math.sin(RAKEep * Math.PI / 180) * rakeHandleLen;
-		controlPoints.rakeHandle.y = controlPoints.steeringHeadTop.y - Math.cos(RAKEep * Math.PI / 180) * rakeHandleLen;
+		controlPoints.rakeHandle.x = steeringHeadTopX - Math.sin(RAKEep * Math.PI / 180) * rakeHandleLen;
+		controlPoints.rakeHandle.y = steeringHeadTopY - Math.cos(RAKEep * Math.PI / 180) * rakeHandleLen;
 
 		// Ramme topp ende (på rungon yläputki)
 		controlPoints.frameTopEnd.x = nollakohtaX + Rt + RunkoL + emäputkenalapistex * 0.3;
@@ -1737,10 +1674,6 @@ function calculate(laskentatapa)
     controlPoints.seatKink.y = kinkY;
 
 		// Nedre ramme hjørner
-		// Første hjørne etter bakhjul (maavara punkt)
-		controlPoints.frameLowerStart.x = nollakohtaX + Rt + Rt;
-		controlPoints.frameLowerStart.y = nollakohtaY + Rt + Rt - maavara;
-
 		// Midtre hjørne på nedre ramme (alarunko slutt) - med vinkel
 		controlPoints.frameLowerMid.x = nollakohtaX + Rt + Rt + alarunkoRunX;
 		controlPoints.frameLowerMid.y = nollakohtaY + Rt + Rt - maavara - alarunkoRiseY;
@@ -1755,10 +1688,6 @@ function calculate(laskentatapa)
 		var lowerMidY = nollakohtaY + Rt + Rt - maavara - alarunkoRiseY / 2;
 		controlPoints.frameLowerAngle.x = lowerMidX - Math.sin(alarunkoAngleRad) * angleHandleLen;
 		controlPoints.frameLowerAngle.y = lowerMidY - Math.cos(alarunkoAngleRad) * angleHandleLen;
-
-		// T-stykke topp (hvor gaffel festes)
-		controlPoints.tripleClampTop.x = nollakohtaX + Rt + RunkoL + Xtk;
-		controlPoints.tripleClampTop.y = nollakohtaY + Rt + Rt - Yep - Ytk;
 
 		// Gaffel bunn (ved hjulaksel)
 		controlPoints.forkBottom.x = nollakohtaX + Rt + RunkoL + Xtk + Xk;
@@ -1920,20 +1849,24 @@ if (document.form1.details.value == 1)	{
 	
 	// Tegn kontrollpunkter hvis edit mode (etter alt annet)
 	if (editMode) {
-		var cpSize = 14;
+		var cpSize = 20;
 		var hoverColor = "#ff6b00";
 
 		// Tegn hjelpelinjer
 		jg_doc.setStroke(2);
 		jg_doc.setColor("rgba(155, 89, 182, 0.5)");
 
+		// Beregn styrerør topp posisjon for hjelpelinjer
+		var steeringTopX = nollakohtaX + Rt + RunkoL;
+		var steeringTopY = nollakohtaY + Rt + Rt - Yep;
+
 		// Hjelpelinje for rake-vinkel (fra styrerør topp til rake handle)
-		jg_doc.drawLine(controlPoints.steeringHeadTop.x, controlPoints.steeringHeadTop.y,
+		jg_doc.drawLine(steeringTopX, steeringTopY,
 			controlPoints.rakeHandle.x, controlPoints.rakeHandle.y);
 
 		// Hjelpelinje fra styrerør topp til bunn
 		jg_doc.setColor("rgba(52, 152, 219, 0.5)");
-		jg_doc.drawLine(controlPoints.steeringHeadTop.x, controlPoints.steeringHeadTop.y,
+		jg_doc.drawLine(steeringTopX, steeringTopY,
 			controlPoints.steeringHeadBottom.x, controlPoints.steeringHeadBottom.y);
 
 		// Tegn alle kontrollpunkter med sine farger
