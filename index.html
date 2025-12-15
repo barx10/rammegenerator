@@ -397,6 +397,24 @@ hr {
   box-shadow: 0 4px 12px rgba(39,174,96,0.4);
 }
 
+.rotation-display {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 15px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+#rotationValue {
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 35px;
+  text-align: right;
+}
+
 /* Footer / Kontakt */
 .footer {
   margin-top: 30px;
@@ -556,6 +574,10 @@ hr {
 
 <div class="button-row">
   <button type="button" class="lock-frame-btn" onclick="toggleFrameLock()" id="lockFrameBtn" data-no="Lås ramme" data-en="Lock frame">Lås ramme</button>
+  <span id="rotationDisplay" class="rotation-display" style="display:none;">
+    <span data-no="Rotasjon:" data-en="Rotation:">Rotasjon:</span>
+    <span id="rotationValue">0</span>°
+  </span>
   <button type="button" class="download-pdf-btn" onclick="downloadPDF()" id="downloadPdfBtn" data-no="Last ned PDF" data-en="Download PDF">Last ned PDF</button>
 </div>
 
@@ -605,48 +627,26 @@ var stored_RAKEtk_T = 6;
 
 // Rammelås - lagrer alle proporsjoner når låst
 var frameLocked = false;
+var frameRotationAngle = 0; // Rotasjonsvinkel i grader (0 = normal)
 var lockedFrame = {
-  Rt: 0,           // Bakhjul radius (cm)
-  Yep: 0,          // Styreaksel høyde
-  RunkoL: 0,       // Rammelengde
-  distance: 0,     // Avstand fra bakhjul-senter til styrerør
-  angle: 0,        // Vinkel fra horisontal
-  RAKEep: 0,       // Rake vinkel
-  maavara: 0,      // Bunnklaring
-  alarunko: 0,     // Nedre ramme
-  kehto: 0,        // Kehto hjørne
-  alarunkoAngle: 0 // Nedre ramme vinkel
+  baseAngle: 0  // Startvinkel ved lås
 };
 
 function toggleFrameLock() {
   var btn = document.getElementById('lockFrameBtn');
+  var rotDisplay = document.getElementById('rotationDisplay');
   
   if (!frameLocked) {
-    // Lås ramma - lagre alle nåværende verdier
-    var Rt = (parseFloat(String(document.form1.Rt.value).replace(',', '.')) || 26) * 2.54 / 2;
-    var Yep = parseFloat(String(document.form1.Yep.value).replace(',', '.')) || 88;
-    var RunkoL = parseFloat(String(document.form1.RunkoL.value).replace(',', '.')) || 115;
-    
-    lockedFrame.Rt = Rt;
-    lockedFrame.Yep = Yep;
-    lockedFrame.RunkoL = RunkoL;
-    lockedFrame.RAKEep = parseFloat(String(document.form1.RAKEep.value).replace(',', '.')) || 41;
-    lockedFrame.maavara = parseFloat(String(document.form1.maavara.value).replace(',', '.')) || 8;
-    lockedFrame.alarunko = parseFloat(String(document.form1.alarunko.value).replace(',', '.')) || 60;
-    lockedFrame.kehto = parseFloat(String(document.form1.kehto.value).replace(',', '.')) || 12;
-    lockedFrame.alarunkoAngle = parseFloat(String(document.form1.alarunkoAngle.value).replace(',', '.')) || 0;
-    
-    // Beregn avstand og vinkel fra bakhjul-senter til styrerør-topp
-    var dx = RunkoL;
-    var dy = Yep - Rt;
-    lockedFrame.distance = Math.sqrt(dx * dx + dy * dy);
-    lockedFrame.angle = Math.atan2(dy, dx);
+    // Lås ramma - lagre startvinkel
+    lockedFrame.baseAngle = frameRotationAngle;
     
     frameLocked = true;
     btn.textContent = currentLang === 'no' ? 'Lås opp' : 'Unlock';
     btn.classList.add('locked');
+    rotDisplay.style.display = 'flex';
+    document.getElementById('rotationValue').textContent = '0';
     
-    // Deaktiver andre kontrollpunkter unntatt rotasjon
+    // Deaktiver alle input-felt
     document.querySelectorAll('input[type="text"]').forEach(function(input) {
       if (!input.readOnly) {
         input.dataset.wasEnabled = 'true';
@@ -656,8 +656,14 @@ function toggleFrameLock() {
   } else {
     // Lås opp
     frameLocked = false;
+    frameRotationAngle = 0; // Reset rotasjon
     btn.textContent = currentLang === 'no' ? 'Lås ramme' : 'Lock frame';
     btn.classList.remove('locked');
+    rotDisplay.style.display = 'none';
+    
+    // Fjern CSS-rotasjon
+    var testDiv = document.getElementById('test');
+    testDiv.style.transform = 'none';
     
     // Reaktiver input-felt
     document.querySelectorAll('input[type="text"]').forEach(function(input) {
@@ -1349,29 +1355,24 @@ function updateValuesFromGeometry(pointId, point) {
       return;
     }
     
-    // Beregn ny vinkel basert på musepeker fra bakhjul-senter
+    // Beregn rotasjonsvinkel basert på musepeker fra bakhjul-senter
     var mouseDx = point.x - rearCenterX;
     var mouseDy = rearCenterY - point.y; // Y er invertert
-    var newAngle = Math.atan2(mouseDy, mouseDx);
     
-    // Beregn nye koordinater for styrerør-topp med låst avstand men ny vinkel
-    var newDx = lockedFrame.distance * Math.cos(newAngle);
-    var newDy = lockedFrame.distance * Math.sin(newAngle);
+    // Beregn vinkel i grader (0 = horisontalt til høyre)
+    var mouseAngle = Math.atan2(mouseDy, mouseDx) * (180 / Math.PI);
     
-    // Konverter tilbake til Yep og RunkoL
-    var newRunkoL = newDx;
-    var newYep = newDy + lockedFrame.Rt;
+    // Begrens rotasjonsvinkelen til ±30 grader
+    var newRotation = mouseAngle;
+    if (newRotation < -30) newRotation = -30;
+    if (newRotation > 30) newRotation = 30;
     
-    // Valider og oppdater (midlertidig aktiver feltene)
-    if (newRunkoL > 50 && newRunkoL < 200 && newYep > 40 && newYep < 150) {
-      document.form1.RunkoL.disabled = false;
-      document.form1.Yep.disabled = false;
-      document.form1.RunkoL.value = twoDecimals(newRunkoL);
-      document.form1.Yep.value = twoDecimals(newYep);
-      document.form1.RunkoL.disabled = true;
-      document.form1.Yep.disabled = true;
-      highlightField('Yep');
-    }
+    // Oppdater global rotasjonsvinkel og visning
+    frameRotationAngle = newRotation;
+    document.getElementById('rotationValue').textContent = newRotation.toFixed(1);
+    
+    // Tegn på nytt med rotasjon
+    calculate(0);
   }
 }
 
@@ -1634,6 +1635,18 @@ function calculate(laskentatapa)
 	
 	jg_doc.clear();
 	jg_doc.setPrintable(true);
+	
+	// Rotasjon av hele ramma (når låst)
+	var testDiv = document.getElementById('test');
+	if (frameLocked && frameRotationAngle !== 0) {
+		// Beregn rotasjonspunkt (bakhjul-senter)
+		var pivotX = nollakohtaX + Rt;
+		var pivotY = nollakohtaY + Rt;
+		testDiv.style.transformOrigin = pivotX + 'px ' + pivotY + 'px';
+		testDiv.style.transform = 'rotate(' + (-frameRotationAngle) + 'deg)';
+	} else {
+		testDiv.style.transform = 'none';
+	}
 	
 	jg_doc.setStroke(linewidth); 
 	jg_doc.setColor("#a0826d");
