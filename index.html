@@ -661,10 +661,6 @@ function toggleFrameLock() {
     btn.classList.remove('locked');
     rotDisplay.style.display = 'none';
     
-    // Fjern CSS-rotasjon
-    var testDiv = document.getElementById('test');
-    testDiv.style.transform = 'none';
-    
     // Reaktiver input-felt
     document.querySelectorAll('input[type="text"]').forEach(function(input) {
       if (input.dataset.wasEnabled === 'true') {
@@ -672,6 +668,9 @@ function toggleFrameLock() {
         delete input.dataset.wasEnabled;
       }
     });
+    
+    // Tegn på nytt uten rotasjon
+    calculate(0);
   }
 }
 
@@ -1798,10 +1797,8 @@ if (document.form1.details.value == 1)	{
 	
 	jg_doc.setColor("#000000"); // musta
 	jg_doc.setStroke(linewidth*2);
-	// Emäputki (styrerør) med rotasjon
-	var emaStart = rotatePoint(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep);
-	var emaEnd = rotatePoint(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey);
-	jg_doc.drawLine(emaStart.x, emaStart.y, emaEnd.x, emaEnd.y); // emäputki
+	// Emäputki (styrerør) - roteres IKKE (følger hjulet)
+	jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey); // emäputki
 	
 	jg_doc.setStroke(linewidth);
 	// Nedre rammelinjer med rotasjon
@@ -1845,31 +1842,19 @@ if (document.form1.details.value == 1)	{
 	
 	if (document.form1.KTyyppi.value == 'T'){
 		if (document.form1.details.value == 1)	{ jg_doc.setStroke(linewidth+4); }
-		// Keulaputket med rotasjon
-		var kp1 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk);
-		var kp2 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk);
-		jg_doc.drawLine(kp1.x, kp1.y, kp2.x, kp2.y); // Keulaputket
-		// Ylä T-kappale med rotasjon
-		var yt1 = rotatePoint(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep);
-		var yt2 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk);
-		jg_doc.drawLine(yt1.x, yt1.y, yt2.x, yt2.y); // ylä T-kappale
-		// Ala T-kappale med rotasjon
-		var at1 = rotatePoint(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey);
-		var at2 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+TKalax, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay);
-		jg_doc.drawLine(at1.x, at1.y, at2.x, at2.y); // ala T-kappale
+		// Keulaputket - roteres IKKE (følger hjulet)
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk, nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // Keulaputket
+		// Ylä T-kappale - roteres IKKE
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk); // ylä T-kappale
+		// Ala T-kappale - roteres IKKE
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey, nollakohtaX+Rt+RunkoL+Xtk+TKalax, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay); // ala T-kappale
 	} else {
 		if (document.form1.details.value == 1)	{ jg_doc.setStroke(linewidth+2); }
-		// Springer med rotasjon
-		var sp1 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk);
-		var sp2 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk);
-		jg_doc.drawLine(sp1.x, sp1.y, sp2.x, sp2.y); // taempi springer
-		var sp3 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk);
-		var sp4 = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+Xk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+Yk);
-		jg_doc.drawLine(sp3.x, sp3.y, sp4.x, sp4.y); // joustava springer
-		// Ala T-kappale med rotasjon
-		var at1s = rotatePoint(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey);
-		var at2s = rotatePoint(nollakohtaX+Rt+RunkoL+Xtk+TKalax+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay);
-		jg_doc.drawLine(at1s.x, at1s.y, at2s.x, at2s.y); // ala T-kappale
+		// Springer - roteres IKKE (følger hjulet)
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk, nollakohtaY+Rt+Rt-Yep-Ytk, nollakohtaX+Rt+RunkoL+Xtk+Xk, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // taempi springer
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+Xtk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk, nollakohtaX+Rt+RunkoL+Xtk+Xk+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+Yk); // joustava springer
+		// Ala T-kappale - roteres IKKE
+		jg_doc.drawLine(nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey, nollakohtaX+Rt+RunkoL+Xtk+TKalax+4*zoom, nollakohtaY+Rt+Rt-Yep-Ytk+TKalay); // ala T-kappale
 	}
 	
 	if (document.form1.calcvalues.value == 1)	{
