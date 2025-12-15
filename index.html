@@ -429,6 +429,12 @@ hr {
     <td data-no="Ramme lengde" data-en="Frame length">Ramme lengde</td>
     <td><input id="RunkoL" type="text" name="RunkoL" value="115" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
   </tr>
+  <tr>
+    <td data-no="Seteknekk" data-en="Seat kink">Seteknekk<span class="hint" data-no="(setehøyde)" data-en="(seat height)">(setehøyde)</span></td>
+    <td><input id="seteH" type="text" name="seteH" value="0" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
+    <td></td>
+    <td></td>
+  </tr>
   <tr><td colspan="4"><hr></td></tr>
   <tr id="detailit">
     <td data-no="Linjetykkelse" data-en="Line width">Linjetykkelse</td>
@@ -528,6 +534,9 @@ var controlPoints = {
 
   // Ramme hjørner (øvre linje)
   frameTopEnd: { x: 0, y: 0, dragging: false, label: 'Ramme lengde', field: 'RunkoL', color: '#1abc9c', cursor: 'ew-resize' },
+
+  // Knekk på øvre rammerør (for setehøyde)
+  seatKink: { x: 0, y: 0, dragging: false, label: 'Seteknekk', field: 'seteH', color: '#1abc9c', cursor: 'ns-resize' },
 
   // Ramme hjørner (nedre linje) - justerbar vinkel
   frameLowerStart: { x: 0, y: 0, dragging: false, label: 'Bunnklaring', field: 'maavara', color: '#e74c3c', cursor: 'move' },
@@ -1075,6 +1084,21 @@ function updateValuesFromGeometry(pointId, point) {
       document.form1.RunkoL.value = twoDecimals(newRunkoL);
       highlightField('RunkoL');
     }
+  } else if (pointId === 'seatKink') {
+    // Seteknekk - hvor mye øvre rør knekkes opp
+    var topEndX = controlPoints.frameTopEnd.x;
+    var topEndY = controlPoints.frameTopEnd.y;
+    var rearTopX = rearCenterX;
+    var rearTopY = rearCenterY;
+    var kinkT = 0.42;
+    var kinkBaseX = rearTopX + (topEndX - rearTopX) * kinkT;
+    var kinkBaseY = rearTopY + (topEndY - rearTopY) * kinkT;
+    // seteH er positiv når vi drar punktet opp (mindre y)
+    var newSeteH = (kinkBaseY - point.y) / zoom;
+    if (newSeteH >= 0 && newSeteH <= 60) {
+      document.form1.seteH.value = twoDecimals(newSeteH);
+      highlightField('seteH');
+    }
   } else if (pointId === 'tripleClampTop') {
     // T-stykke topp - offset
     var radtodeg = Math.PI / 180;
@@ -1419,7 +1443,21 @@ function calculate(laskentatapa)
 	}
 		
 	jg_doc.drawEllipse(nollakohtaX, nollakohtaY, 2*Rt, 2*Rt); // takakumi
-	jg_doc.drawLine(nollakohtaX+Rt, nollakohtaY+Rt, nollakohtaX+Rt+RunkoL+emäputkenalapistex*0.3, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey*0.3); // rungon yläputki
+  // Øvre rammerør med knekk (setehøyde)
+  var rearTopX = nollakohtaX + Rt;
+  var rearTopY = nollakohtaY + Rt;
+  var topEndX = nollakohtaX + Rt + RunkoL + emäputkenalapistex * 0.3;
+  var topEndY = nollakohtaY + Rt + Rt - Yep + emäputkenalapistey * 0.3;
+  var kinkT = 0.42;
+  var kinkBaseX = rearTopX + (topEndX - rearTopX) * kinkT;
+  var kinkBaseY = rearTopY + (topEndY - rearTopY) * kinkT;
+  var seteH = parseFloat(String(document.form1.seteH.value).replace(',', '.')) || 0;
+  seteH = Math.max(0, Math.min(60, seteH));
+  var kinkY = kinkBaseY - (seteH * zoom);
+  var kinkX = kinkBaseX;
+  // Tegn to segmenter i stedet for en rett linje
+  jg_doc.drawLine(rearTopX, rearTopY, kinkX, kinkY);
+  jg_doc.drawLine(kinkX, kinkY, topEndX, topEndY);
 	
 	// Oppdater control points posisjoner for alle draggbare hjørner
 	if (!draggedPoint) {
@@ -1451,6 +1489,10 @@ function calculate(laskentatapa)
 		// Ramme topp ende (på rungon yläputki)
 		controlPoints.frameTopEnd.x = nollakohtaX + Rt + RunkoL + emäputkenalapistex * 0.3;
 		controlPoints.frameTopEnd.y = nollakohtaY + Rt + Rt - Yep + emäputkenalapistey * 0.3;
+
+    // Seteknekk (på øvre rammerør)
+    controlPoints.seatKink.x = kinkX;
+    controlPoints.seatKink.y = kinkY;
 
 		// Nedre ramme hjørner
 		// Første hjørne etter bakhjul (maavara punkt)
