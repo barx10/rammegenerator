@@ -7,6 +7,7 @@
     this.canvas = this.container.querySelector('canvas');
     if (!this.canvas){
       this.canvas = document.createElement('canvas');
+      this.canvas.id = 'cnv';
       this.canvas.width = 1200;
       this.canvas.height = 700;
       this.canvas.style.width = '1200px';
@@ -49,6 +50,11 @@
 
   JsGraphics.prototype.drawEllipse = function(x, y, w, h){
     this.commands.push({ type: 'ellipse', color: this.color, stroke: this.stroke, rect: [x, y, w, h] });
+    return this;
+  };
+
+  JsGraphics.prototype.fillEllipse = function(x, y, w, h){
+    this.commands.push({ type: 'fillEllipse', color: this.color, rect: [x, y, w, h] });
     return this;
   };
 
@@ -117,6 +123,16 @@
           ctx.beginPath();
           ctx.ellipse(cmd.rect[0] + cmd.rect[2] / 2, cmd.rect[1] + cmd.rect[3] / 2, Math.abs(cmd.rect[2] / 2), Math.abs(cmd.rect[3] / 2), 0, 0, Math.PI * 2);
           ctx.stroke();
+          ctx.restore();
+          break;
+        case 'fillEllipse':
+          ctx.save();
+          ctx.fillStyle = cmd.color;
+          ctx.shadowColor = 'rgba(0,0,0,0.2)';
+          ctx.shadowBlur = 4;
+          ctx.beginPath();
+          ctx.ellipse(cmd.rect[0] + cmd.rect[2] / 2, cmd.rect[1] + cmd.rect[3] / 2, Math.abs(cmd.rect[2] / 2), Math.abs(cmd.rect[3] / 2), 0, 0, Math.PI * 2);
+          ctx.fill();
           ctx.restore();
           break;
         case 'image':
