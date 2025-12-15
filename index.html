@@ -363,6 +363,52 @@ hr {
   background: rgba(255,107,0,0.2);
 }
 
+/* Lock toggle */
+.lock-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.lock-toggle input {
+  display: none;
+}
+
+.lock-slider {
+  width: 40px;
+  height: 22px;
+  background: #ccc;
+  border-radius: 11px;
+  position: relative;
+  transition: background 0.3s;
+}
+
+.lock-slider::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+}
+
+.lock-toggle input:checked + .lock-slider {
+  background: var(--accent);
+}
+
+.lock-toggle input:checked + .lock-slider::after {
+  transform: translateX(18px);
+}
+
+.lock-label {
+  font-size: 0.85rem;
+  color: var(--text-dark);
+}
+
 /* Footer / Kontakt */
 .footer {
   margin-top: 30px;
@@ -499,6 +545,16 @@ hr {
     <td data-no="Nedre ramme vinkel" data-en="Lower frame angle">Nedre ramme vinkel</td>
     <td><input id="alarunkoAngle" type="text" name="alarunkoAngle" value="0" onkeyup="calculate(0);"> <span class="unit">°</span></td>
   </tr>
+  <tr>
+    <td colspan="2" data-no="Lås ramme (roter)" data-en="Lock frame (rotate)">Lås ramme (roter)</td>
+    <td colspan="2">
+      <label class="lock-toggle">
+        <input type="checkbox" id="lockFrame" onchange="toggleFrameLock()">
+        <span class="lock-slider"></span>
+        <span class="lock-label" data-no="Av" data-en="Off" id="lockLabel">Av</span>
+      </label>
+    </td>
+  </tr>
   <tr><td colspan="4"><hr></td></tr>
   <tr class="results-row">
     <td data-no="Trail" data-en="Trail">Trail</td>
@@ -564,6 +620,29 @@ var stored_laskentatapa = 1;
 var stored_ALOffset = 10;
 var stored_TKOffset = 5;
 var stored_RAKEtk_T = 6;
+
+// Ramme-lås state for rotasjon rundt bakhjul
+var frameLocked = false;
+var lockPivot = { x: 0, y: 0 }; // Bakhjul-senter i pixels
+
+function toggleFrameLock() {
+  frameLocked = document.getElementById('lockFrame').checked;
+  var label = document.getElementById('lockLabel');
+  if (frameLocked) {
+    label.textContent = currentLang === 'no' ? 'På' : 'On';
+    // Lagre pivot-punkt (bakhjul-senter)
+    var zoom = parseFloat(String(document.form1.zoom.value).replace(',', '.')) || 3;
+    var Rt = (parseFloat(String(document.form1.Rt.value).replace(',', '.')) || 26) * 2.54 / 2;
+    var Yep = parseFloat(String(document.form1.Yep.value).replace(',', '.')) || 88;
+    var nollakohtaX = 20;
+    var nollakohtaY = parseInt((Yep - Rt - Rt + 60) * zoom);
+    if (document.form1.details.value == 1) nollakohtaY = nollakohtaY + 50 * zoom;
+    lockPivot.x = nollakohtaX + Rt * zoom;
+    lockPivot.y = nollakohtaY + Rt * zoom;
+  } else {
+    label.textContent = currentLang === 'no' ? 'Av' : 'Off';
+  }
+}
 
 // Interaktiv editor state - alltid aktiv
 var editMode = true;
@@ -1079,6 +1158,21 @@ function updateValuesFromGeometry(pointId, point) {
   var nollakohtaX = 20;
   var nollakohtaY = parseInt((Yep - Rt - Rt + 60) * zoom);
   if (document.form1.details.value == 1) nollakohtaY = nollakohtaY + 50 * zoom;
+
+  // RAMME LÅST: Roter hele ramma rundt bakhjul-senter (kun endre rake)
+  if (frameLocked && pointId !== 'rearWheelTop' && pointId !== 'frontWheelTop' && 
+      pointId !== 'motorImage' && pointId !== 'tankImage') {
+    // Beregn vinkel fra bakhjul-senter til musepeker
+    var dx = point.x - lockPivot.x;
+    var dy = lockPivot.y - point.y; // Y er invertert i canvas
+    var angle = Math.atan2(dx, dy) * (180 / Math.PI);
+    // Begrens til fornuftige verdier
+    if (angle > 15 && angle < 70) {
+      document.form1.RAKEep.value = twoDecimals(angle);
+      highlightField('RAKEep');
+    }
+    return;
+  }
 
   var groundY = nollakohtaY + Rt * zoom + Rt * zoom;
   var rearCenterX = nollakohtaX + Rt * zoom;
