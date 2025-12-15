@@ -1103,16 +1103,11 @@ function updateValuesFromGeometry(pointId, point) {
       highlightField('Re');
     }
   } else if (pointId === 'steeringHeadTop') {
-    // Styrerør topp - oppdater Yep (høyde) og RunkoL (rammelengde)
+    // Styrerør topp - kun høyde (Yep), RunkoL forblir uendret
     var newYep = (groundY - point.y) / zoom;
-    var newRunkoL = (point.x - rearCenterX) / zoom;
     if (newYep > 40 && newYep < 150) {
       document.form1.Yep.value = twoDecimals(newYep);
       highlightField('Yep');
-    }
-    if (newRunkoL > 50 && newRunkoL < 200) {
-      document.form1.RunkoL.value = twoDecimals(newRunkoL);
-      highlightField('RunkoL');
     }
   } else if (pointId === 'steeringHeadBottom') {
     // Styrerør bunn - juster rake ved å dra
@@ -1199,17 +1194,12 @@ function updateValuesFromGeometry(pointId, point) {
       highlightField('maavara');
     }
   } else if (pointId === 'frameLowerMid') {
-    // Nedre ramme lengde - horisontal avstand
+    // Nedre ramme lengde - kun horisontal avstand (alarunko)
     var startX = nollakohtaX + Rt * zoom + Rt * zoom;
     var newAlarunko = (point.x - startX) / zoom;
-    // Oppdater også maavara basert på y-posisjon
-    var newMaavara = (groundY - point.y) / zoom;
     if (newAlarunko > 20 && newAlarunko < 120) {
       document.form1.alarunko.value = twoDecimals(newAlarunko);
       highlightField('alarunko');
-    }
-    if (newMaavara > 2 && newMaavara < 40) {
-      document.form1.maavara.value = twoDecimals(newMaavara);
     }
   } else if (pointId === 'frameLowerEnd') {
     // Kehto hjørne - diagonal fra nedre ramme ende
