@@ -427,8 +427,8 @@ hr {
   <tr>
     <td data-no="Kehto hjørne" data-en="Cradle corner">Kehto hjørne</td>
     <td><input id="kehto" type="text" name="kehto" value="12" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
-    <td></td>
-    <td></td>
+    <td data-no="Nedre ramme vinkel" data-en="Lower frame angle">Nedre ramme vinkel</td>
+    <td><input id="alarunkoAngle" type="text" name="alarunkoAngle" value="0" onkeyup="calculate(0);"> <span class="unit">°</span></td>
   </tr>
   <tr><td colspan="4"><hr></td></tr>
   <tr class="results-row">
@@ -460,6 +460,7 @@ hr {
   <div class="legend-item"><span class="legend-dot" style="background:#9b59b6;"></span><span data-no="Rake vinkel" data-en="Rake angle">Rake vinkel</span></div>
   <div class="legend-item"><span class="legend-dot" style="background:#1abc9c;"></span><span data-no="Ramme topp" data-en="Frame top">Ramme topp</span></div>
   <div class="legend-item"><span class="legend-dot" style="background:#e74c3c;"></span><span data-no="Ramme bunn" data-en="Frame bottom">Ramme bunn</span></div>
+  <div class="legend-item"><span class="legend-dot" style="background:#c0392b;"></span><span data-no="Ramme vinkel" data-en="Frame angle">Ramme vinkel</span></div>
   <div class="legend-item"><span class="legend-dot" style="background:#e67e22;"></span><span data-no="Gaffel/T-stykke" data-en="Fork/Triple clamp">Gaffel/T-stykke</span></div>
 </div>
 </div><!-- end inputs-panel -->
@@ -508,10 +509,11 @@ var controlPoints = {
   // Ramme hjørner (øvre linje)
   frameTopEnd: { x: 0, y: 0, dragging: false, label: 'Ramme lengde', field: 'RunkoL', color: '#1abc9c', cursor: 'ew-resize' },
 
-  // Ramme hjørner (nedre linje) - alle rette vinkler
+  // Ramme hjørner (nedre linje) - justerbar vinkel
   frameLowerStart: { x: 0, y: 0, dragging: false, label: 'Bunnklaring', field: 'maavara', color: '#e74c3c', cursor: 'move' },
   frameLowerMid: { x: 0, y: 0, dragging: false, label: 'Nedre ramme', field: 'alarunko', color: '#e74c3c', cursor: 'ew-resize' },
   frameLowerEnd: { x: 0, y: 0, dragging: false, label: 'Kehto hjørne', field: 'kehto', color: '#e74c3c', cursor: 'move' },
+  frameLowerAngle: { x: 0, y: 0, dragging: false, label: 'Nedre ramme vinkel', field: 'alarunkoAngle', color: '#c0392b', cursor: 'grab' },
 
   // Gaffel/T-stykke hjørner
   tripleClampTop: { x: 0, y: 0, dragging: false, label: 'T-stykke offset', field: 'TKOffset', color: '#e67e22', cursor: 'move' },
@@ -980,6 +982,19 @@ function updateValuesFromGeometry(pointId, point) {
       document.form1.kehto.value = twoDecimals(newKehto);
       highlightField('kehto');
     }
+  } else if (pointId === 'frameLowerAngle') {
+    // Nedre ramme vinkel - beregn vinkel fra startpunkt til musepeker
+    var startX = controlPoints.frameLowerStart.x;
+    var startY = controlPoints.frameLowerStart.y;
+    var dx = point.x - startX;
+    var dy = startY - point.y;
+    // Beregn vinkel (positiv = oppover)
+    var newAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+    // Begrens vinkel til ±20 grader
+    if (newAngle >= -20 && newAngle <= 20) {
+      document.form1.alarunkoAngle.value = twoDecimals(newAngle);
+      highlightField('alarunkoAngle');
+    }
   }
 }
 
@@ -1217,9 +1232,14 @@ function calculate(laskentatapa)
 	var maavaraVal = new Number(document.form1.maavara.value.replace(',', '.'));
 	var alarunkoVal = new Number(document.form1.alarunko.value.replace(',', '.'));
 	var kehtoVal = new Number(document.form1.kehto.value.replace(',', '.'));
+	var alarunkoAngleVal = new Number(document.form1.alarunkoAngle.value.replace(',', '.'));
 	var maavara = parseInt(maavaraVal*zoom);
 	var alarunko = parseInt(alarunkoVal*zoom);
 	var kehtoputkienalareuna = parseInt(kehtoVal*zoom);
+	// Beregn vinkel-offset for nedre ramme (positiv vinkel = stiger framover)
+	var alarunkoAngleRad = alarunkoAngleVal * radtodeg;
+	var alarunkoRiseY = Math.sin(alarunkoAngleRad) * alarunko;
+	var alarunkoRunX = Math.cos(alarunkoAngleRad) * alarunko;
 	var emäputkenalapistey = parseInt(10*zoom);
 	var emäputkenalapistex =  Math.tan(radtodeg * RAKEep ) * emäputkenalapistey;
 	
@@ -1284,13 +1304,20 @@ function calculate(laskentatapa)
 		controlPoints.frameLowerStart.x = nollakohtaX + Rt + Rt;
 		controlPoints.frameLowerStart.y = nollakohtaY + Rt + Rt - maavara;
 
-		// Midtre hjørne på nedre ramme (alarunko slutt)
-		controlPoints.frameLowerMid.x = nollakohtaX + Rt + Rt + alarunko;
-		controlPoints.frameLowerMid.y = nollakohtaY + Rt + Rt - maavara;
+		// Midtre hjørne på nedre ramme (alarunko slutt) - med vinkel
+		controlPoints.frameLowerMid.x = nollakohtaX + Rt + Rt + alarunkoRunX;
+		controlPoints.frameLowerMid.y = nollakohtaY + Rt + Rt - maavara - alarunkoRiseY;
 
-		// Kehto hjørne (hvor nedre ramme går opp)
-		controlPoints.frameLowerEnd.x = nollakohtaX + Rt + Rt + alarunko + kehtoputkienalareuna;
-		controlPoints.frameLowerEnd.y = nollakohtaY + Rt + Rt - maavara - kehtoputkienalareuna;
+		// Kehto hjørne (hvor nedre ramme går opp) - med vinkel
+		controlPoints.frameLowerEnd.x = nollakohtaX + Rt + Rt + alarunkoRunX + kehtoputkienalareuna;
+		controlPoints.frameLowerEnd.y = nollakohtaY + Rt + Rt - maavara - alarunkoRiseY - kehtoputkienalareuna;
+
+		// Vinkel-håndtak for nedre ramme (på midten av nedre ramme-linjen)
+		var angleHandleLen = 50;
+		var lowerMidX = nollakohtaX + Rt + Rt + alarunkoRunX / 2;
+		var lowerMidY = nollakohtaY + Rt + Rt - maavara - alarunkoRiseY / 2;
+		controlPoints.frameLowerAngle.x = lowerMidX - Math.sin(alarunkoAngleRad) * angleHandleLen;
+		controlPoints.frameLowerAngle.y = lowerMidY - Math.cos(alarunkoAngleRad) * angleHandleLen;
 
 		// T-stykke topp (hvor gaffel festes)
 		controlPoints.tripleClampTop.x = nollakohtaX + Rt + RunkoL + Xtk;
@@ -1321,11 +1348,11 @@ if (document.form1.details.value == 1)	{
 	jg_doc.setStroke(linewidth*2);
 	jg_doc.drawLine(nollakohtaX+Rt+RunkoL, nollakohtaY+Rt+Rt-Yep, nollakohtaX+Rt+RunkoL+emäputkenalapistex, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey); // emäputki
 	
-	jg_doc.setStroke(linewidth); 
+	jg_doc.setStroke(linewidth);
 	jg_doc.drawLine(nollakohtaX+Rt, nollakohtaY+Rt, nollakohtaX+Rt+Rt, nollakohtaY+Rt+Rt-maavara); // rungon taka-alarunko
-	jg_doc.drawLine(nollakohtaX+Rt+Rt, nollakohtaY+Rt+Rt-maavara, nollakohtaX+Rt+Rt+alarunko, nollakohtaY+Rt+Rt-maavara); // rungon taka-alarunko
-	jg_doc.drawLine(nollakohtaX+Rt+Rt+alarunko, nollakohtaY+Rt+Rt-maavara, nollakohtaX+Rt+Rt+alarunko+kehtoputkienalareuna, nollakohtaY+Rt+Rt-maavara-kehtoputkienalareuna); // kehtoputkien alareuna
-	jg_doc.drawLine(nollakohtaX+Rt+Rt+alarunko+kehtoputkienalareuna, nollakohtaY+Rt+Rt-maavara-kehtoputkienalareuna, nollakohtaX+Rt+RunkoL+emäputkenalapistex*0.8, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey*0.8); // kehtoputket
+	jg_doc.drawLine(nollakohtaX+Rt+Rt, nollakohtaY+Rt+Rt-maavara, nollakohtaX+Rt+Rt+alarunkoRunX, nollakohtaY+Rt+Rt-maavara-alarunkoRiseY); // rungon taka-alarunko (med vinkel)
+	jg_doc.drawLine(nollakohtaX+Rt+Rt+alarunkoRunX, nollakohtaY+Rt+Rt-maavara-alarunkoRiseY, nollakohtaX+Rt+Rt+alarunkoRunX+kehtoputkienalareuna, nollakohtaY+Rt+Rt-maavara-alarunkoRiseY-kehtoputkienalareuna); // kehtoputkien alareuna
+	jg_doc.drawLine(nollakohtaX+Rt+Rt+alarunkoRunX+kehtoputkienalareuna, nollakohtaY+Rt+Rt-maavara-alarunkoRiseY-kehtoputkienalareuna, nollakohtaX+Rt+RunkoL+emäputkenalapistex*0.8, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey*0.8); // kehtoputket
 	
 	if (document.form1.KTyyppi.value == 'T'){
 		jg_doc.drawEllipse(nollakohtaX+Rt+RunkoL+Xtk+Xk-Re, nollakohtaY+Rt+Rt-Yep-Ytk+Yk-Re, 2*Re, 2*Re); // etukumi
