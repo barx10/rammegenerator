@@ -1159,24 +1159,33 @@ function updateValuesFromGeometry(pointId, point) {
   var nollakohtaY = parseInt((Yep - Rt - Rt + 60) * zoom);
   if (document.form1.details.value == 1) nollakohtaY = nollakohtaY + 50 * zoom;
 
+  var groundY = nollakohtaY + Rt * zoom + Rt * zoom;
+  var rearCenterX = nollakohtaX + Rt * zoom;
+  var rearCenterY = nollakohtaY + Rt * zoom;
+
   // RAMME LÅST: Roter hele ramma rundt bakhjul-senter (kun endre rake)
   if (frameLocked && pointId !== 'rearWheelTop' && pointId !== 'frontWheelTop' && 
       pointId !== 'motorImage' && pointId !== 'tankImage') {
     // Beregn vinkel fra bakhjul-senter til musepeker
-    var dx = point.x - lockPivot.x;
-    var dy = lockPivot.y - point.y; // Y er invertert i canvas
-    var angle = Math.atan2(dx, dy) * (180 / Math.PI);
-    // Begrens til fornuftige verdier
-    if (angle > 15 && angle < 70) {
-      document.form1.RAKEep.value = twoDecimals(angle);
+    // dx = horisontal avstand, dy = vertikal avstand (positiv = oppover)
+    var dx = point.x - rearCenterX;
+    var dy = rearCenterY - point.y; // Y er invertert i canvas
+    
+    // Beregn vinkel - 0 grader er horisontalt, positiv er oppover
+    // Rake er vinkelen fra vertikalen, så vi konverterer
+    var angleFromHorizontal = Math.atan2(dy, dx) * (180 / Math.PI);
+    // Rake = 90 - vinkel fra horisontal (når vi ser på styrerøret)
+    // Men for enkel rotasjon: dra oppover = mindre rake, nedover = mer rake
+    var newRake = 90 - angleFromHorizontal;
+    
+    // Begrens til fornuftige verdier (15-70 grader)
+    if (newRake >= 15 && newRake <= 70) {
+      document.form1.RAKEep.value = twoDecimals(newRake);
       highlightField('RAKEep');
     }
     return;
   }
 
-  var groundY = nollakohtaY + Rt * zoom + Rt * zoom;
-  var rearCenterX = nollakohtaX + Rt * zoom;
-  var rearCenterY = nollakohtaY + Rt * zoom;
   var steeringHeadX = nollakohtaX + Rt * zoom + RunkoL * zoom;
   var steeringHeadY = nollakohtaY + Rt * zoom + Rt * zoom - Yep * zoom;
 
