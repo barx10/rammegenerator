@@ -141,7 +141,7 @@ hr {
   font-style: italic;
 }
 
-#test { 
+#test {
   border: 3px solid var(--border);
   margin-top: 30px;
   background: linear-gradient(to bottom, #fafafa, #ffffff);
@@ -149,6 +149,51 @@ hr {
   border-radius: 12px;
   box-shadow: inset 0 2px 8px var(--shadow);
   overflow: hidden;
+}
+
+#test.edit-mode {
+  cursor: default;
+}
+
+#test.dragging {
+  cursor: grabbing !important;
+}
+
+.drag-tooltip {
+  position: absolute;
+  background: rgba(44, 62, 80, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 1001;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.control-point-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
 }
 
 .field-highlight { 
@@ -327,6 +372,16 @@ hr {
 </table>
 
 <button type="button" class="edit-mode-btn" onclick="toggleEditMode()" id="editModeBtn" data-no="Aktiver redigeringsmodus" data-en="Enable Edit Mode">Aktiver redigeringsmodus</button>
+
+<div id="controlPointLegend" class="control-point-legend" style="display:none;">
+  <span style="font-weight:600; margin-right: 8px;" data-no="Dra i punktene for å justere:" data-en="Drag points to adjust:">Dra i punktene for å justere:</span>
+  <div class="legend-item"><span class="legend-dot" style="background:#27ae60;"></span><span data-no="Hjul radius" data-en="Wheel radius">Hjul radius</span></div>
+  <div class="legend-item"><span class="legend-dot" style="background:#3498db;"></span><span data-no="Styrerør posisjon" data-en="Steering head position">Styrerør posisjon</span></div>
+  <div class="legend-item"><span class="legend-dot" style="background:#9b59b6;"></span><span data-no="Rake vinkel" data-en="Rake angle">Rake vinkel</span></div>
+  <div class="legend-item"><span class="legend-dot" style="background:#1abc9c;"></span><span data-no="Ramme lengde" data-en="Frame length">Ramme lengde</span></div>
+  <div class="legend-item"><span class="legend-dot" style="background:#e67e22;"></span><span data-no="Gaffel lengde" data-en="Fork length">Gaffel lengde</span></div>
+</div>
+
 <div id="canvas-container">
 <div id="test" style="position:relative;left:0px;top:0px;width:1200px;height:700px;z-index:2;overflow:visible;" onclick="handleCanvasClick(event)"></div>
 </div>
@@ -351,14 +406,18 @@ var draggableElements = {
 var dragStart = { x: 0, y: 0 };
 var currentElement = null;
 
-// Geometry control points
+// Geometry control points - alle draggbare punkter på rammen
 var controlPoints = {
-  rearWheel: { x: 0, y: 0, dragging: false },
-  frontWheel: { x: 0, y: 0, dragging: false },
-  steeringHead: { x: 0, y: 0, dragging: false },
-  handlebar: { x: 0, y: 0, dragging: false }
+  rearWheel: { x: 0, y: 0, dragging: false, label: 'Bakhjul radius', field: 'Rt' },
+  frontWheel: { x: 0, y: 0, dragging: false, label: 'Forhjul radius', field: 'Re' },
+  steeringHead: { x: 0, y: 0, dragging: false, label: 'Styrerør høyde', field: 'Yep' },
+  rakeHandle: { x: 0, y: 0, dragging: false, label: 'Rake vinkel', field: 'RAKEep' },
+  frameEnd: { x: 0, y: 0, dragging: false, label: 'Ramme lengde', field: 'RunkoL' },
+  forkBottom: { x: 0, y: 0, dragging: false, label: 'Gaffellengde', field: 'k' },
+  trailPoint: { x: 0, y: 0, dragging: false, label: 'Trail', field: 'jatto' }
 };
 var draggedPoint = null;
+var isDragging = false;
 
 // Last draggable elementer i localStorage
 function saveElementPositions() {
@@ -380,19 +439,31 @@ function loadElementPositions() {
 function toggleEditMode() {
   editMode = !editMode;
   var btn = document.getElementById('editModeBtn');
+  var testDiv = document.getElementById('test');
+  var legend = document.getElementById('controlPointLegend');
+
   if (editMode) {
     btn.classList.add('active');
     btn.textContent = currentLang === 'no' ? 'Avslutt redigering' : 'Exit Edit Mode';
     btn.setAttribute('data-no', 'Avslutt redigering');
     btn.setAttribute('data-en', 'Exit Edit Mode');
+    testDiv.classList.add('edit-mode');
+    if (legend) legend.style.display = 'flex';
     showEditOverlays();
   } else {
     btn.classList.remove('active');
     btn.textContent = currentLang === 'no' ? 'Aktiver redigeringsmodus' : 'Enable Edit Mode';
     btn.setAttribute('data-no', 'Aktiver redigeringsmodus');
     btn.setAttribute('data-en', 'Enable Edit Mode');
+    testDiv.classList.remove('edit-mode');
+    testDiv.classList.remove('dragging');
+    if (legend) legend.style.display = 'none';
     hideEditOverlays();
     saveElementPositions();
+    // Fjern field highlighting
+    document.querySelectorAll('.field-highlight').forEach(function(el) {
+      el.classList.remove('field-highlight');
+    });
   }
 }
 
@@ -497,36 +568,122 @@ function setupCanvasEventListeners() {
     var my = e.clientY - rect.top;
 
     // Sjekk om vi klikket på et kontrollpunkt
-    var hitRadius = 12;
+    var hitRadius = 16;
     for (var key in controlPoints) {
       var p = controlPoints[key];
       var dx = mx - p.x;
       var dy = my - p.y;
-      if (Math.sqrt(dx*dx + dy*dy) < hitRadius) {
+      if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+        e.preventDefault();
+        e.stopPropagation();
         draggedPoint = key;
+        isDragging = true;
+        var testDiv = document.getElementById('test');
+        if (testDiv) testDiv.classList.add('dragging');
+        // Highlight det relaterte feltet
+        var cp = controlPoints[key];
+        if (cp.field) {
+          highlightField(cp.field);
+        }
         return;
       }
     }
   });
 }
 
-document.addEventListener('mousemove', function(e) {
-  if (!editMode || !draggedPoint) return;
+// Sett opp mousedown på hele dokumentet for bedre responsivitet
+document.addEventListener('mousedown', function(e) {
+  if (!editMode) return;
 
   var canvas = document.getElementById('cnv');
   if (!canvas) return;
-  var rect = canvas.getBoundingClientRect();
-  var point = controlPoints[draggedPoint];
-  point.x = e.clientX - rect.left;
-  point.y = e.clientY - rect.top;
 
-  updateValuesFromGeometry(draggedPoint, point);
-  calculate(0);
+  var rect = canvas.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+
+  // Sjekk om klikket er innenfor canvas
+  if (mx < 0 || my < 0 || mx > rect.width || my > rect.height) return;
+
+  // Sjekk om vi klikket på et kontrollpunkt
+  var hitRadius = 16;
+  for (var key in controlPoints) {
+    var p = controlPoints[key];
+    var dx = mx - p.x;
+    var dy = my - p.y;
+    if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+      e.preventDefault();
+      draggedPoint = key;
+      isDragging = true;
+      var testDiv = document.getElementById('test');
+      if (testDiv) testDiv.classList.add('dragging');
+      var cp = controlPoints[key];
+      if (cp.field) {
+        highlightField(cp.field);
+      }
+      return;
+    }
+  }
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (!editMode) return;
+
+  var canvas = document.getElementById('cnv');
+  var testDiv = document.getElementById('test');
+  if (!canvas) return;
+
+  var rect = canvas.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+
+  // Hvis vi drar et punkt
+  if (draggedPoint) {
+    var point = controlPoints[draggedPoint];
+    point.x = mx;
+    point.y = my;
+    isDragging = true;
+    testDiv.classList.add('dragging');
+
+    updateValuesFromGeometry(draggedPoint, point);
+    calculate(0);
+    return;
+  }
+
+  // Sjekk om vi hover over et kontrollpunkt (for cursor feedback)
+  var hitRadius = 14;
+  var hovering = false;
+  for (var key in controlPoints) {
+    var p = controlPoints[key];
+    var dx = mx - p.x;
+    var dy = my - p.y;
+    if (Math.sqrt(dx * dx + dy * dy) < hitRadius) {
+      hovering = true;
+      testDiv.style.cursor = 'grab';
+      break;
+    }
+  }
+  if (!hovering && !draggedPoint) {
+    testDiv.style.cursor = editMode ? 'default' : 'crosshair';
+  }
 });
 
 document.addEventListener('mouseup', function(e) {
-  if (draggedPoint) {
+  if (draggedPoint || isDragging) {
     draggedPoint = null;
+    isDragging = false;
+    var testDiv = document.getElementById('test');
+    if (testDiv) {
+      testDiv.classList.remove('dragging');
+    }
+    // Fjern field highlighting etter kort pause
+    setTimeout(function() {
+      if (!draggedPoint) {
+        document.querySelectorAll('.field-highlight').forEach(function(el) {
+          el.classList.remove('field-highlight');
+        });
+      }
+    }, 1500);
   }
 });
 
@@ -565,38 +722,98 @@ loadElementPositions();
 		}
 	}
 	
-	function updateValuesFromGeometry(pointId, point) {
-  var zoom = parseFloat(document.form1.zoom.value) || 3;
-  var Rt = parseFloat(document.form1.Rt.value) || 33;
-  var Re = parseFloat(document.form1.Re.value) || 33;
-  
-  // Få current nollakohtaX/Y fra siste calculate
-  var nollakohtaX = 30 * zoom;
-  var nollakohtaY = 30 * zoom;
-  
+function updateValuesFromGeometry(pointId, point) {
+  var zoom = parseFloat(String(document.form1.zoom.value).replace(',', '.')) || 3;
+  var Rt = parseFloat(String(document.form1.Rt.value).replace(',', '.')) || 33;
+  var Re = parseFloat(String(document.form1.Re.value).replace(',', '.')) || 33;
+  var Yep = parseFloat(String(document.form1.Yep.value).replace(',', '.')) || 88;
+  var RunkoL = parseFloat(String(document.form1.RunkoL.value).replace(',', '.')) || 115;
+  var RAKEep = parseFloat(String(document.form1.RAKEep.value).replace(',', '.')) || 41;
+
+  // Beregn nollapunkt (origin) basert på gjeldende verdier
+  var nollakohtaX = 20;
+  var nollakohtaY = parseInt((Yep - Rt - Rt + 20) * zoom);
+  if (document.form1.details.value == 1) nollakohtaY = nollakohtaY + 50 * zoom;
+
+  var groundY = nollakohtaY + Rt * zoom + Rt * zoom;
+  var rearCenterX = nollakohtaX + Rt * zoom;
+  var rearCenterY = nollakohtaY + Rt * zoom;
+  var steeringHeadX = nollakohtaX + Rt * zoom + RunkoL * zoom;
+  var steeringHeadY = nollakohtaY + Rt * zoom + Rt * zoom - Yep * zoom;
+
   if (pointId === 'rearWheel') {
-    // Bakhjul flyttet - oppdater Rt (radius)
-    var centerY = point.y;
-    var groundY = nollakohtaY + Rt + Rt;
-    var newRt = Math.abs(centerY - groundY) / 2;
-    document.form1.Rt.value = twoDecimals(newRt / zoom);
+    // Bakhjul flyttes vertikalt - oppdater Rt (radius)
+    var newRt = (groundY - point.y) / zoom;
+    if (newRt > 10 && newRt < 100) {
+      document.form1.Rt.value = twoDecimals(newRt);
+      highlightField('Rt');
+    }
   } else if (pointId === 'frontWheel') {
-    // Forhjul flyttet - oppdater Re og/eller RunkoL
-    var centerX = point.x;
-    var centerY = point.y;
-    var rearCenterX = controlPoints.rearWheel.x || (nollakohtaX + Rt);
-    var newRunkoL = (centerX - rearCenterX) / zoom;
-    document.form1.RunkoL.value = twoDecimals(newRunkoL);
-    
-    var groundY = nollakohtaY + Rt + Rt;
-    var newRe = Math.abs(centerY - groundY) / 2;
-    document.form1.Re.value = twoDecimals(newRe / zoom);
+    // Forhjul flyttes - oppdater Re (radius)
+    var newRe = (groundY - point.y) / zoom;
+    if (newRe > 10 && newRe < 100) {
+      document.form1.Re.value = twoDecimals(newRe);
+      highlightField('Re');
+    }
   } else if (pointId === 'steeringHead') {
-    // Styrerør flyttet - oppdater Yep
-    var headY = point.y;
-    var groundY = nollakohtaY + Rt + Rt;
-    var newYep = (groundY - headY) / zoom;
-    document.form1.Yep.value = twoDecimals(newYep);
+    // Styrerør flyttes - oppdater Yep (høyde) og RunkoL (rammelengde)
+    var newYep = (groundY - point.y) / zoom;
+    var newRunkoL = (point.x - rearCenterX) / zoom;
+    if (newYep > 40 && newYep < 150) {
+      document.form1.Yep.value = twoDecimals(newYep);
+      highlightField('Yep');
+    }
+    if (newRunkoL > 50 && newRunkoL < 200) {
+      document.form1.RunkoL.value = twoDecimals(newRunkoL);
+      highlightField('RunkoL');
+    }
+  } else if (pointId === 'rakeHandle') {
+    // Rake-vinkel endres ved å dra håndtaket
+    // Beregn vinkelen fra styrerør-punktet til dra-punktet
+    var shX = controlPoints.steeringHead.x;
+    var shY = controlPoints.steeringHead.y;
+    var dx = point.x - shX;
+    var dy = shY - point.y; // invertert Y fordi canvas Y øker nedover
+    // Vinkelen måles fra vertikal (0° = rett opp)
+    var newAngle = Math.atan2(dx, dy) * (180 / Math.PI);
+    // Juster for negativ vinkel (venstre side)
+    if (newAngle < 0) newAngle = -newAngle;
+    if (newAngle > 15 && newAngle < 70) {
+      document.form1.RAKEep.value = twoDecimals(newAngle);
+      highlightField('RAKEep');
+    }
+  } else if (pointId === 'frameEnd') {
+    // Rammelengde endres
+    var newRunkoL = (point.x - rearCenterX) / zoom;
+    if (newRunkoL > 50 && newRunkoL < 200) {
+      document.form1.RunkoL.value = twoDecimals(newRunkoL);
+      highlightField('RunkoL');
+    }
+  } else if (pointId === 'forkBottom') {
+    // Gaffellengde endres - beregn ny k basert på avstand fra steering head
+    var radtodeg = Math.PI / 180;
+    var RAKEtk = parseFloat(String(document.form1.RAKEtk.value).replace(',', '.')) || 0;
+    var KokonaisRake = RAKEep + RAKEtk;
+    var dx = point.x - controlPoints.steeringHead.x;
+    var dy = point.y - controlPoints.steeringHead.y;
+    var newK = Math.sqrt(dx * dx + dy * dy) / zoom;
+    if (newK > 30 && newK < 150) {
+      document.form1.k.value = twoDecimals(newK);
+      highlightField('k');
+      stored_laskentatapa = 2; // Bytt til k-basert beregning
+    }
+  }
+}
+
+function highlightField(fieldId) {
+  // Fjern tidligere highlighting
+  document.querySelectorAll('.field-highlight').forEach(function(el) {
+    el.classList.remove('field-highlight');
+  });
+  // Highlight det aktive feltet
+  var field = document.getElementById(fieldId);
+  if (field) {
+    field.classList.add('field-highlight');
   }
 }
 var stored_RAKEtk_S = 0;
@@ -850,14 +1067,36 @@ function calculate(laskentatapa)
 	jg_doc.drawEllipse(nollakohtaX, nollakohtaY, 2*Rt, 2*Rt); // takakumi
 	jg_doc.drawLine(nollakohtaX+Rt, nollakohtaY+Rt, nollakohtaX+Rt+RunkoL+emäputkenalapistex*0.3, nollakohtaY+Rt+Rt-Yep+emäputkenalapistey*0.3); // rungon yläputki
 	
-	// Oppdater control points posisjoner
+	// Oppdater control points posisjoner for alle draggbare punkter
 	if (!draggedPoint) {
+		// Bakhjul senter
 		controlPoints.rearWheel.x = nollakohtaX + Rt;
 		controlPoints.rearWheel.y = nollakohtaY + Rt;
-		controlPoints.frontWheel.x = nollakohtaX + Rt + RunkoL + Xtk + Xk - Re + ALOffset;
-		controlPoints.frontWheel.y = nollakohtaY + Rt + Rt - Yep - Ytk + Yk - Re;
+
+		// Forhjul senter
+		if (document.form1.KTyyppi.value == 'T') {
+			controlPoints.frontWheel.x = nollakohtaX + Rt + RunkoL + Xtk + Xk;
+		} else {
+			controlPoints.frontWheel.x = nollakohtaX + Rt + RunkoL + Xtk + Xk + ALOffset;
+		}
+		controlPoints.frontWheel.y = nollakohtaY + Rt + Rt - Yep - Ytk + Yk;
+
+		// Styrerør topp
 		controlPoints.steeringHead.x = nollakohtaX + Rt + RunkoL;
 		controlPoints.steeringHead.y = nollakohtaY + Rt + Rt - Yep;
+
+		// Rake-vinkel håndtak (på linjen fra styrerør oppover)
+		var rakeHandleLen = 60;
+		controlPoints.rakeHandle.x = controlPoints.steeringHead.x - Math.sin(RAKEep * Math.PI / 180) * rakeHandleLen;
+		controlPoints.rakeHandle.y = controlPoints.steeringHead.y - Math.cos(RAKEep * Math.PI / 180) * rakeHandleLen;
+
+		// Ramme-ende (på rungon yläputki)
+		controlPoints.frameEnd.x = nollakohtaX + Rt + RunkoL + emäputkenalapistex * 0.3;
+		controlPoints.frameEnd.y = nollakohtaY + Rt + Rt - Yep + emäputkenalapistey * 0.3;
+
+		// Gaffel bunn (ved hjulaksel)
+		controlPoints.forkBottom.x = nollakohtaX + Rt + RunkoL + Xtk + Xk;
+		controlPoints.forkBottom.y = nollakohtaY + Rt + Rt - Yep - Ytk + Yk;
 	}
 	
 if (document.form1.details.value == 1)	{
@@ -945,10 +1184,49 @@ if (document.form1.details.value == 1)	{
 	
 	// Tegn kontrollpunkter hvis edit mode (etter alt annet)
 	if (editMode) {
-		jg_doc.setColor("#27ae60");
-		jg_doc.fillEllipse(controlPoints.rearWheel.x - 8, controlPoints.rearWheel.y - 8, 16, 16);
-		jg_doc.fillEllipse(controlPoints.frontWheel.x - 8, controlPoints.frontWheel.y - 8, 16, 16);
-		jg_doc.fillEllipse(controlPoints.steeringHead.x - 8, controlPoints.steeringHead.y - 8, 16, 16);
+		var cpSize = 14;
+		var activeColor = "#27ae60";
+		var hoverColor = "#ff6b00";
+
+		// Tegn linjer fra kontrollpunkter til det de kontrollerer
+		jg_doc.setStroke(2);
+		jg_doc.setColor("#27ae6080");
+
+		// Hjelpelinje for rake-vinkel
+		jg_doc.drawLine(controlPoints.steeringHead.x, controlPoints.steeringHead.y,
+			controlPoints.rakeHandle.x, controlPoints.rakeHandle.y);
+
+		// Bakhjul - grønn
+		jg_doc.setColor(draggedPoint === 'rearWheel' ? hoverColor : activeColor);
+		jg_doc.fillEllipse(controlPoints.rearWheel.x - cpSize/2, controlPoints.rearWheel.y - cpSize/2, cpSize, cpSize);
+
+		// Forhjul - grønn
+		jg_doc.setColor(draggedPoint === 'frontWheel' ? hoverColor : activeColor);
+		jg_doc.fillEllipse(controlPoints.frontWheel.x - cpSize/2, controlPoints.frontWheel.y - cpSize/2, cpSize, cpSize);
+
+		// Styrerør - blå
+		jg_doc.setColor(draggedPoint === 'steeringHead' ? hoverColor : "#3498db");
+		jg_doc.fillEllipse(controlPoints.steeringHead.x - cpSize/2, controlPoints.steeringHead.y - cpSize/2, cpSize, cpSize);
+
+		// Rake-vinkel - lilla
+		jg_doc.setColor(draggedPoint === 'rakeHandle' ? hoverColor : "#9b59b6");
+		jg_doc.fillEllipse(controlPoints.rakeHandle.x - cpSize/2, controlPoints.rakeHandle.y - cpSize/2, cpSize, cpSize);
+
+		// Ramme-ende - turkis
+		jg_doc.setColor(draggedPoint === 'frameEnd' ? hoverColor : "#1abc9c");
+		jg_doc.fillEllipse(controlPoints.frameEnd.x - cpSize/2, controlPoints.frameEnd.y - cpSize/2, cpSize, cpSize);
+
+		// Gaffel bunn - oransje (ved forhjul)
+		jg_doc.setColor(draggedPoint === 'forkBottom' ? hoverColor : "#e67e22");
+		jg_doc.fillEllipse(controlPoints.forkBottom.x - cpSize/2, controlPoints.forkBottom.y - cpSize/2, cpSize, cpSize);
+
+		// Tegn tooltips/labels når man drar
+		if (draggedPoint) {
+			var cp = controlPoints[draggedPoint];
+			jg_doc.setColor("#2c3e50");
+			jg_doc.drawString(cp.label + ": " + document.form1[cp.field].value, cp.x + 15, cp.y - 20);
+		}
+
 		jg_doc.setColor("#000000");
 	}
 	
