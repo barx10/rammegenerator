@@ -480,6 +480,7 @@ hr {
     <td>
       <select id="KTyyppi" name="KTyyppi" onchange="keulavaihdos();">
         <option value="T" data-no="Teleskop" data-en="Telescopic">Teleskop</option>
+        <option value="W" data-no="Wide Glide" data-en="Wide Glide">Wide Glide</option>
         <option value="S" data-no="Springer" data-en="Springer">Springer</option>
       </select>
     </td>
@@ -489,6 +490,20 @@ hr {
         <option value="0" data-no="Nei" data-en="No">Nei</option>
         <option value="1" data-no="Ja" data-en="Yes">Ja</option>
       </select>
+    </td>
+  </tr>
+  <tr><td colspan="4"><hr></td></tr>
+  <tr>
+    <td data-no="Rammepreset" data-en="Frame preset">Rammepreset</td>
+    <td colspan="3">
+      <select id="framePreset" name="framePreset" onchange="applyFramePreset(this.value);">
+        <option value="" data-no="Velg..." data-en="Choose...">Velg...</option>
+        <option value="harley_sportster" data-no="Harley: Sportster (standard)" data-en="Harley: Sportster (standard)">Harley: Sportster (standard)</option>
+        <option value="harley_dyna" data-no="Harley: Dyna (standard)" data-en="Harley: Dyna (standard)">Harley: Dyna (standard)</option>
+        <option value="harley_softail" data-no="Harley: Softail (standard)" data-en="Harley: Softail (standard)">Harley: Softail (standard)</option>
+        <option value="harley_chopper" data-no="Harley: Chopper (standard)" data-en="Harley: Chopper (standard)">Harley: Chopper (standard)</option>
+      </select>
+      <span class="hint" data-no="Standard startverdier (varierer med årsmodell/bygger)." data-en="Standard starting values (varies by year/build).">Standard startverdier (varierer med årsmodell/bygger).</span>
     </td>
   </tr>
   <tr><td colspan="4"><hr></td></tr>
@@ -632,6 +647,125 @@ var lockedFrame = {
   baseAngle: 0  // Startvinkel ved lås
 };
 
+// Throttling for smooth rendering (unngå flimring)
+var pendingRender = false;
+function throttledCalculate() {
+  if (pendingRender) return;
+  pendingRender = true;
+  requestAnimationFrame(function() {
+    calculate(0);
+    pendingRender = false;
+  });
+}
+
+// Ramme-presets (typiske startverdier; varierer med årsmodell/modell)
+var FRAME_PRESETS = {
+  harley_sportster: {
+    label: 'Sportster',
+    KTyyppi: 'T',
+    // Typisk Sportster-rake rundt 30°
+    RAKEep: 30,
+    RAKEtk: 0,
+    TKOffset: 5,
+    // Grov ytre hjuldiameter (tommer)
+    Re: 27,
+    Rt: 26,
+    // Styreaksel høyde (cm) - brukes som startpunkt i denne modellen
+    Yep: 75,
+    // Omtrentlig akselavstand (cm)
+    targetWheelbase: 152
+  },
+  harley_dyna: {
+    label: 'Dyna',
+    KTyyppi: 'T',
+    // Dynas var typisk 28° rake fra mid-90-tallet og utover
+    RAKEep: 28,
+    RAKEtk: 0,
+    TKOffset: 5,
+    Re: 27,
+    Rt: 26,
+    Yep: 76,
+    targetWheelbase: 163
+  },
+  harley_softail: {
+    label: 'Softail',
+    KTyyppi: 'T',
+    RAKEep: 30,
+    RAKEtk: 0,
+    TKOffset: 5,
+    // Softail finnes med flere hjulkombinasjoner; dette er en “midt på treet” start
+    Re: 28,
+    Rt: 26,
+    Yep: 76,
+    targetWheelbase: 165
+  },
+  harley_chopper: {
+    label: 'Chopper',
+    KTyyppi: 'T',
+    // “Chopper” varierer enormt; dette er en klassisk høy rake + raked trees
+    RAKEep: 41,
+    RAKEtk: 6,
+    TKOffset: 5,
+    Re: 30,
+    Rt: 26,
+    Yep: 88,
+    targetWheelbase: 180
+  }
+};
+
+function applyFramePreset(presetKey) {
+  if (!presetKey || !FRAME_PRESETS[presetKey]) return;
+  var preset = FRAME_PRESETS[presetKey];
+  var f = document.form1;
+
+  // Sett gaffeltype først (oppdaterer felter/offset logikk)
+  if (preset.KTyyppi) {
+    f.KTyyppi.value = preset.KTyyppi;
+    keulavaihdos();
+  }
+
+  if (preset.Yep !== undefined) f.Yep.value = twoDecimals(preset.Yep);
+  if (preset.RAKEep !== undefined) f.RAKEep.value = twoDecimals(preset.RAKEep);
+  if (preset.RAKEtk !== undefined) f.RAKEtk.value = twoDecimals(preset.RAKEtk);
+  if (preset.TKOffset !== undefined) f.TKOffset.value = twoDecimals(preset.TKOffset);
+  if (preset.Re !== undefined) f.Re.value = String(preset.Re);
+  if (preset.Rt !== undefined) f.Rt.value = String(preset.Rt);
+
+  // Bruk Yep som “master” og la modellen beregne k
+  calculate(1);
+
+  // Juster RunkoL slik at akselavstand blir omtrent riktig i denne modellen
+  if (preset.targetWheelbase) {
+    setRunkoLForWheelbaseCm(preset.targetWheelbase);
+    calculate(1);
+  }
+}
+
+function setRunkoLForWheelbaseCm(targetWheelbaseCm) {
+  var f = document.form1;
+  var radtodeg = Math.PI / 180;
+
+  var Yep = parseNum(f.Yep.value);
+  var Re = parseNum(f.Re.value) * 2.54 / 2;
+  var RAKEep = parseNum(f.RAKEep.value);
+  var RAKEtk = parseNum(f.RAKEtk.value);
+  var TKOffset = parseNum(f.TKOffset.value);
+
+  var KokonaisRake = RAKEep + RAKEtk;
+  var Ytk = Math.sin(radtodeg * RAKEep) * TKOffset;
+  var Xtk = Math.cos(radtodeg * RAKEep) * TKOffset;
+
+  // Samme forutsetning som i calculate(1): k beregnes fra Yep
+  var Yk = Yep - Re + Ytk;
+  if (!isFinite(Yk) || Yk <= 0) return;
+  var Xk = Math.tan(radtodeg * KokonaisRake) * Yk;
+
+  var requiredRunkoL = targetWheelbaseCm - (Xk + Xtk);
+  if (requiredRunkoL > 50 && requiredRunkoL < 220) {
+    f.RunkoL.value = twoDecimals(requiredRunkoL);
+  }
+}
+
 function toggleFrameLock() {
   var btn = document.getElementById('lockFrameBtn');
   var rotDisplay = document.getElementById('rotationDisplay');
@@ -646,12 +780,16 @@ function toggleFrameLock() {
     rotDisplay.style.display = 'flex';
     document.getElementById('rotationValue').textContent = '0';
     
-    // Deaktiver alle input-felt
+    // Deaktiver alle input-felt og dropdowns
     document.querySelectorAll('input[type="text"]').forEach(function(input) {
       if (!input.readOnly) {
         input.dataset.wasEnabled = 'true';
         input.disabled = true;
       }
+    });
+    document.querySelectorAll('select').forEach(function(sel) {
+      sel.dataset.wasEnabled = 'true';
+      sel.disabled = true;
     });
   } else {
     // Lås opp - behold rotasjonsvinkelen aktiv
@@ -664,11 +802,17 @@ function toggleFrameLock() {
     btn.classList.remove('locked');
     rotDisplay.style.display = 'none';
     
-    // Reaktiver input-felt
+    // Reaktiver input-felt og dropdowns
     document.querySelectorAll('input[type="text"]').forEach(function(input) {
       if (input.dataset.wasEnabled === 'true') {
         input.disabled = false;
         delete input.dataset.wasEnabled;
+      }
+    });
+    document.querySelectorAll('select').forEach(function(sel) {
+      if (sel.dataset.wasEnabled === 'true') {
+        sel.disabled = false;
+        delete sel.dataset.wasEnabled;
       }
     });
     
@@ -931,6 +1075,7 @@ function setupCanvasEventListeners() {
 
   canvas.addEventListener('mousedown', function(e) {
     if (!editMode) return;
+    if (frameLocked) return; // Alt låst - ingen interaksjon
 
     var rect = canvas.getBoundingClientRect();
     var mx = e.clientX - rect.left;
@@ -985,6 +1130,7 @@ function setupCanvasEventListeners() {
   // Scroll-hjul for å resize motor og tank
   canvas.addEventListener('wheel', function(e) {
     if (!editMode) return;
+    if (frameLocked) return; // Alt låst
 
     var rect = canvas.getBoundingClientRect();
     var mx = e.clientX - rect.left;
@@ -1008,7 +1154,7 @@ function setupCanvasEventListeners() {
           img.scale = Math.max(0.2, Math.min(3, img.scale + delta));
 
           saveElementPositions();
-          calculate(0);
+          throttledCalculate();
           return;
         }
       }
@@ -1019,6 +1165,7 @@ function setupCanvasEventListeners() {
 // Sett opp mousedown på hele dokumentet for bedre responsivitet
 document.addEventListener('mousedown', function(e) {
   if (!editMode) return;
+  if (frameLocked) return; // Alt låst
 
   var canvas = document.getElementById('cnv');
   if (!canvas) return;
@@ -1053,6 +1200,7 @@ document.addEventListener('mousedown', function(e) {
 
 document.addEventListener('mousemove', function(e) {
   if (!editMode) return;
+  if (frameLocked) return; // Alt låst
 
   var canvas = document.getElementById('cnv');
   var testDiv = document.getElementById('test');
@@ -1072,7 +1220,7 @@ document.addEventListener('mousemove', function(e) {
       img.x = mx - dragStart.x;
       img.y = my - dragStart.y;
       saveElementPositions();
-      calculate(0);
+      throttledCalculate();
       return;
     }
     
@@ -1296,15 +1444,7 @@ function updateValuesFromGeometry(pointId, point) {
     }
   } else if (pointId === 'frameRotation') {
     // Rammerotasjon - roterer hele ramma rundt bakhjul-senter
-    // Krever at ramma er låst først
-    
-    if (!frameLocked) {
-      // Vis melding om at ramma må låses først
-      alert(currentLang === 'no' ? 
-        'Lås ramma først ved å klikke "Lås ramme"' : 
-        'Lock the frame first by clicking "Lock frame"');
-      return;
-    }
+    // Tillatt selv om ramma ikke er låst
     
     // Beregn rotasjonsvinkel basert på musepeker fra bakhjul-senter
     var mouseDx = point.x - rearCenterX;
@@ -1429,11 +1569,23 @@ function setLang(lang) {
 }
 
 calculate(1);
+
+// Standard start: Sportster (kunden kan bytte preset ved behov)
+try {
+  var presetSelect = document.getElementById('framePreset');
+  if (presetSelect) {
+    presetSelect.value = 'harley_sportster';
+    applyFramePreset('harley_sportster');
+  }
+} catch (e) {}
+
 setupCanvasEventListeners();
 
 function keulavaihdos()
 {
-	if (document.form1.KTyyppi.value == 'T') {
+	var forkType = document.form1.KTyyppi.value;
+	// Teleskop (T) og Wide Glide (W) fungerer likt; Springer (S) har annen oppsett
+	if (forkType == 'T' || forkType == 'W') {
 		document.getElementById('hydra').style.display='';
 		document.getElementById('springu').style.display='none';
 		stored_ALOffset = document.form1.ALOffset.value;
