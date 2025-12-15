@@ -432,8 +432,8 @@ hr {
   <tr>
     <td data-no="Seteknekk" data-en="Seat kink">Seteknekk<span class="hint" data-no="(setehøyde)" data-en="(seat height)">(setehøyde)</span></td>
     <td><input id="seteH" type="text" name="seteH" value="0" onkeyup="calculate(0);"> <span class="unit">cm</span></td>
-    <td></td>
-    <td></td>
+    <td data-no="Knekk posisjon" data-en="Kink position">Knekk posisjon<span class="hint" data-no="(fra bak)" data-en="(from rear)">(fra bak)</span></td>
+    <td><input id="knekkPos" type="text" name="knekkPos" value="10" onkeyup="calculate(0);"> <span class="unit">%</span></td>
   </tr>
   <tr><td colspan="4"><hr></td></tr>
   <tr id="detailit">
@@ -536,7 +536,7 @@ var controlPoints = {
   frameTopEnd: { x: 0, y: 0, dragging: false, label: 'Ramme lengde', field: 'RunkoL', color: '#1abc9c', cursor: 'ew-resize' },
 
   // Knekk på øvre rammerør (for setehøyde)
-  seatKink: { x: 0, y: 0, dragging: false, label: 'Seteknekk', field: 'seteH', color: '#1abc9c', cursor: 'ns-resize' },
+  seatKink: { x: 0, y: 0, dragging: false, label: 'Seteknekk', field: 'seteH', color: '#1abc9c', cursor: 'move' },
 
   // Ramme hjørner (nedre linje) - justerbar vinkel
   frameLowerStart: { x: 0, y: 0, dragging: false, label: 'Bunnklaring', field: 'maavara', color: '#e74c3c', cursor: 'move' },
@@ -1088,16 +1088,28 @@ function updateValuesFromGeometry(pointId, point) {
       highlightField('RunkoL');
     }
   } else if (pointId === 'seatKink') {
-    // Seteknekk - hvor mye øvre rør knekkes ned (positiv = ned)
+    // Seteknekk - både posisjon (horisontalt) og høyde (vertikalt)
     var topEndX = controlPoints.frameTopEnd.x;
     var topEndY = controlPoints.frameTopEnd.y;
     var rearTopX = rearCenterX;
     var rearTopY = rearCenterY;
-    var kinkT = 0.42;
-    var kinkBaseX = rearTopX + (topEndX - rearTopX) * kinkT;
-    var kinkBaseY = rearTopY + (topEndY - rearTopY) * kinkT;
-    // seteH er positiv når vi drar punktet ned (større y)
+    
+    // Beregn t-verdi basert på horisontal posisjon (hvor langs røret)
+    var totalDx = topEndX - rearTopX;
+    var newT = (point.x - rearTopX) / totalDx;
+    newT = Math.max(0, Math.min(1, newT));
+    var newKnekkPos = newT * 100;
+    
+    // Beregn base Y for denne T-verdien
+    var kinkBaseY = rearTopY + (topEndY - rearTopY) * newT;
+    
+    // seteH er forskjellen fra base
     var newSeteH = (point.y - kinkBaseY) / zoom;
+    
+    if (newKnekkPos >= 0 && newKnekkPos <= 100) {
+      document.form1.knekkPos.value = twoDecimals(newKnekkPos);
+      highlightField('knekkPos');
+    }
     if (newSeteH >= -30 && newSeteH <= 60) {
       document.form1.seteH.value = twoDecimals(newSeteH);
       highlightField('seteH');
@@ -1458,7 +1470,9 @@ function calculate(laskentatapa)
   var rearTopY = nollakohtaY + Rt;
   var topEndX = nollakohtaX + Rt + RunkoL + emäputkenalapistex * 0.3;
   var topEndY = nollakohtaY + Rt + Rt - Yep + emäputkenalapistey * 0.3;
-  var kinkT = 0.42;
+  var knekkPosVal = parseFloat(String(document.form1.knekkPos.value).replace(',', '.')) || 10;
+  knekkPosVal = Math.max(0, Math.min(100, knekkPosVal));
+  var kinkT = knekkPosVal / 100;
   var kinkBaseX = rearTopX + (topEndX - rearTopX) * kinkT;
   var kinkBaseY = rearTopY + (topEndY - rearTopY) * kinkT;
   var seteH = parseFloat(String(document.form1.seteH.value).replace(',', '.')) || 0;
