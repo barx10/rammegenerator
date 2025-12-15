@@ -418,10 +418,10 @@ hr {
   </tr>
   <tr><td colspan="4"><hr></td></tr>
   <tr>
-    <td data-no="Forhjul omkrets" data-en="Front wheel circumference">Forhjul omkrets</td>
-    <td><input id="Re" type="text" value="85" name="Re" onkeyup="calculate(0);"> <span class="unit">"</span></td>
-    <td data-no="Bakhjul omkrets" data-en="Rear wheel circumference">Bakhjul omkrets</td>
-    <td><input id="Rt" type="text" value="80" name="Rt" onkeyup="calculate(0);"> <span class="unit">"</span></td>
+    <td data-no="Forhjul diameter" data-en="Front wheel diameter">Forhjul diameter</td>
+    <td><input id="Re" type="text" value="27" name="Re" onkeyup="calculate(0);"> <span class="unit">"</span></td>
+    <td data-no="Bakhjul diameter" data-en="Rear wheel diameter">Bakhjul diameter</td>
+    <td><input id="Rt" type="text" value="26" name="Rt" onkeyup="calculate(0);"> <span class="unit">"</span></td>
   </tr>
   <tr>
     <td data-no="Gaffelrør lengde" data-en="Fork tube length">Gaffelrør lengde</td>
@@ -480,7 +480,7 @@ hr {
 
 <div id="controlPointLegend" class="control-point-legend">
   <span style="font-weight:600; margin-right: 8px;" data-no="Dra i punktene for å justere:" data-en="Drag points to adjust:">Dra i punktene for å justere:</span>
-  <div class="legend-item"><span class="legend-dot" data-color="wheel"></span><span data-no="Hjul omkrets" data-en="Wheel circumference">Hjul omkrets</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="wheel"></span><span data-no="Hjul diameter" data-en="Wheel diameter">Hjul diameter</span></div>
   <div class="legend-item"><span class="legend-dot" data-color="steering"></span><span data-no="Styrerør" data-en="Steering head">Styrerør</span></div>
   <div class="legend-item"><span class="legend-dot" data-color="rake"></span><span data-no="Rake vinkel" data-en="Rake angle">Rake vinkel</span></div>
   <div class="legend-item"><span class="legend-dot" data-color="frameTop"></span><span data-no="Ramme topp" data-en="Frame top">Ramme topp</span></div>
@@ -522,8 +522,8 @@ var currentElement = null;
 // Geometry control points - alle draggbare punkter på rammen (alle hjørner)
 var controlPoints = {
   // Hjul-sentre (kan dras for å endre radius)
-  rearWheelTop: { x: 0, y: 0, dragging: false, label: 'Bakhjul omkrets', field: 'Rt', color: '#27ae60', cursor: 'ns-resize' },
-  frontWheelTop: { x: 0, y: 0, dragging: false, label: 'Forhjul omkrets', field: 'Re', color: '#27ae60', cursor: 'ns-resize' },
+  rearWheelTop: { x: 0, y: 0, dragging: false, label: 'Bakhjul diameter', field: 'Rt', color: '#27ae60', cursor: 'ns-resize' },
+  frontWheelTop: { x: 0, y: 0, dragging: false, label: 'Forhjul diameter', field: 'Re', color: '#27ae60', cursor: 'ns-resize' },
 
   // Styrerør hjørner
   steeringHeadTop: { x: 0, y: 0, dragging: false, label: 'Styrerør høyde', field: 'Yep', color: '#3498db', cursor: 'move' },
@@ -649,8 +649,8 @@ function downloadPDF() {
         ['Styreaksel høyde', document.form1.Yep.value + ' cm'],
         ['Trail', document.form1.jatto.value + ' cm'],
         ['Akselavstand', document.form1.av.value + ' cm'],
-        ['Forhjul omkrets', document.form1.Re.value + '"'],
-        ['Bakhjul omkrets', document.form1.Rt.value + '"']
+        ['Forhjul diameter', document.form1.Re.value + '"'],
+        ['Bakhjul diameter', document.form1.Rt.value + '"']
       ];
 
       params.forEach(function(p, i) {
@@ -1012,9 +1012,9 @@ loadElementPositions();
 	
 function updateValuesFromGeometry(pointId, point) {
   var zoom = parseFloat(String(document.form1.zoom.value).replace(',', '.')) || 3;
-  // Hjulomkrets er i tommer, konverter til radius i cm: r = omkrets * 2.54 / (2 * PI)
-  var Rt = (parseFloat(String(document.form1.Rt.value).replace(',', '.')) || 80) * 2.54 / (2 * Math.PI);
-  var Re = (parseFloat(String(document.form1.Re.value).replace(',', '.')) || 85) * 2.54 / (2 * Math.PI);
+  // Hjuldiameter er i tommer, konverter til radius i cm: r = d * 2.54 / 2
+  var Rt = (parseFloat(String(document.form1.Rt.value).replace(',', '.')) || 26) * 2.54 / 2;
+  var Re = (parseFloat(String(document.form1.Re.value).replace(',', '.')) || 27) * 2.54 / 2;
   var Yep = parseFloat(String(document.form1.Yep.value).replace(',', '.')) || 88;
   var RunkoL = parseFloat(String(document.form1.RunkoL.value).replace(',', '.')) || 115;
   var RAKEep = parseFloat(String(document.form1.RAKEep.value).replace(',', '.')) || 41;
@@ -1032,18 +1032,18 @@ function updateValuesFromGeometry(pointId, point) {
   var steeringHeadY = nollakohtaY + Rt * zoom + Rt * zoom - Yep * zoom;
 
   if (pointId === 'rearWheelTop') {
-    // Bakhjul topp - endre omkrets (radius cm til omkrets tommer)
+    // Bakhjul topp - endre diameter (radius cm til diameter tommer)
     var newRtCm = (groundY - point.y) / zoom;
-    var newRt = newRtCm * 2 * Math.PI / 2.54;
-    if (newRt > 40 && newRt < 120) {
+    var newRt = newRtCm * 2 / 2.54;
+    if (newRt > 15 && newRt < 40) {
       document.form1.Rt.value = twoDecimals(newRt);
       highlightField('Rt');
     }
   } else if (pointId === 'frontWheelTop') {
-    // Forhjul topp - endre omkrets (radius cm til omkrets tommer)
+    // Forhjul topp - endre diameter (radius cm til diameter tommer)
     var newReCm = (groundY - point.y) / zoom;
-    var newRe = newReCm * 2 * Math.PI / 2.54;
-    if (newRe > 40 && newRe < 120) {
+    var newRe = newReCm * 2 / 2.54;
+    if (newRe > 15 && newRe < 40) {
       document.form1.Re.value = twoDecimals(newRe);
       highlightField('Re');
     }
@@ -1332,9 +1332,9 @@ function calculate(laskentatapa)
 	//Lähtöarvot
 	var Yep = new Number(document.form1.Yep.value.replace(',', '.'));
 	var k = new Number(document.form1.k.value.replace(',', '.'));
-	// Hjulomkrets er i tommer, konverter til radius i cm: r = omkrets * 2.54 / (2 * PI)
-	var Re = new Number(document.form1.Re.value.replace(',', '.')) * 2.54 / (2 * Math.PI);
-	var Rt = new Number(document.form1.Rt.value.replace(',', '.')) * 2.54 / (2 * Math.PI);
+	// Hjuldiameter er i tommer, konverter til radius i cm: r = d * 2.54 / 2
+	var Re = new Number(document.form1.Re.value.replace(',', '.')) * 2.54 / 2;
+	var Rt = new Number(document.form1.Rt.value.replace(',', '.')) * 2.54 / 2;
 	
 	var RAKEep = new Number(document.form1.RAKEep.value.replace(',', '.'));
 	var RAKEtk = new Number(document.form1.RAKEtk.value.replace(',', '.'));
