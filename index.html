@@ -362,6 +362,38 @@ hr {
 .draggable-overlay:hover {
   background: rgba(255,107,0,0.2);
 }
+
+/* Footer / Kontakt */
+.footer {
+  margin-top: 30px;
+  padding: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.footer-logo {
+  height: 50px;
+  width: auto;
+}
+
+.footer-contact {
+  text-align: right;
+  color: var(--text-dark);
+  font-size: 0.9rem;
+}
+
+.footer-contact a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.footer-contact a:hover {
+  text-decoration: underline;
+}
 </style>
 </head>
 <body>
@@ -499,7 +531,16 @@ hr {
 
 </div><!-- end main-layout -->
 </form>
-</div>	
+
+<footer class="footer">
+  <img src="laererliv-logo.png" alt="Logo" class="footer-logo">
+  <div class="footer-contact">
+    <span data-no="Kontakt:" data-en="Contact:">Kontakt:</span>
+    <a href="mailto:kontakt@laererliv.no">kontakt@laererliv.no</a>
+  </div>
+</footer>
+
+</div>
 
 <script type="text/javascript">
 var currentLang = 'no';
