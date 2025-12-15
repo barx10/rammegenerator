@@ -16,6 +16,16 @@
   --shadow: rgba(0,0,0,0.08);
   --text-dark: #2c3e50;
   --text-light: #7f8c8d;
+
+  /* Kontrollpunkt-farger (må matche prikkene) */
+  --cp-wheel: #27ae60;
+  --cp-steering: #3498db;
+  --cp-rake: #9b59b6;
+  --cp-frame-top: #1abc9c;
+  --cp-frame-bottom: #e74c3c;
+  --cp-frame-angle: #c0392b;
+  --cp-fork: #e67e22;
+  --cp-image: #f39c12;
 }
 
 body {
@@ -278,6 +288,15 @@ hr {
   border-radius: 50%;
 }
 
+.legend-dot[data-color="wheel"] { background: var(--cp-wheel); }
+.legend-dot[data-color="steering"] { background: var(--cp-steering); }
+.legend-dot[data-color="rake"] { background: var(--cp-rake); }
+.legend-dot[data-color="frameTop"] { background: var(--cp-frame-top); }
+.legend-dot[data-color="frameBottom"] { background: var(--cp-frame-bottom); }
+.legend-dot[data-color="frameAngle"] { background: var(--cp-frame-angle); }
+.legend-dot[data-color="fork"] { background: var(--cp-fork); }
+.legend-dot[data-color="image"] { background: var(--cp-image); }
+
 .field-highlight { 
   background: linear-gradient(135deg, #fff3e0, #ffe0b2) !important;
   border: 2px solid var(--accent) !important;
@@ -455,13 +474,14 @@ hr {
 
 <div id="controlPointLegend" class="control-point-legend">
   <span style="font-weight:600; margin-right: 8px;" data-no="Dra i punktene for å justere:" data-en="Drag points to adjust:">Dra i punktene for å justere:</span>
-  <div class="legend-item"><span class="legend-dot" style="background:#27ae60;"></span><span data-no="Hjul radius" data-en="Wheel radius">Hjul radius</span></div>
-  <div class="legend-item"><span class="legend-dot" style="background:#3498db;"></span><span data-no="Styrerør" data-en="Steering head">Styrerør</span></div>
-  <div class="legend-item"><span class="legend-dot" style="background:#9b59b6;"></span><span data-no="Rake vinkel" data-en="Rake angle">Rake vinkel</span></div>
-  <div class="legend-item"><span class="legend-dot" style="background:#1abc9c;"></span><span data-no="Ramme topp" data-en="Frame top">Ramme topp</span></div>
-  <div class="legend-item"><span class="legend-dot" style="background:#e74c3c;"></span><span data-no="Ramme bunn" data-en="Frame bottom">Ramme bunn</span></div>
-  <div class="legend-item"><span class="legend-dot" style="background:#c0392b;"></span><span data-no="Ramme vinkel" data-en="Frame angle">Ramme vinkel</span></div>
-  <div class="legend-item"><span class="legend-dot" style="background:#e67e22;"></span><span data-no="Gaffel/T-stykke" data-en="Fork/Triple clamp">Gaffel/T-stykke</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="wheel"></span><span data-no="Hjul radius" data-en="Wheel radius">Hjul radius</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="steering"></span><span data-no="Styrerør" data-en="Steering head">Styrerør</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="rake"></span><span data-no="Rake vinkel" data-en="Rake angle">Rake vinkel</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="frameTop"></span><span data-no="Ramme topp" data-en="Frame top">Ramme topp</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="frameBottom"></span><span data-no="Ramme bunn" data-en="Frame bottom">Ramme bunn</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="frameAngle"></span><span data-no="Ramme vinkel" data-en="Frame angle">Ramme vinkel</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="fork"></span><span data-no="Gaffel/T-stykke" data-en="Fork/Triple clamp">Gaffel/T-stykke</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="image"></span><span data-no="Motor/Tank" data-en="Engine/Tank">Motor/Tank</span></div>
 </div>
 </div><!-- end inputs-panel -->
 
@@ -525,6 +545,50 @@ var controlPoints = {
 };
 var draggedPoint = null;
 var isDragging = false;
+
+function getCssVar(name, fallback) {
+  try {
+    var value = getComputedStyle(document.documentElement).getPropertyValue(name);
+    value = value ? value.trim() : '';
+    return value || fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+// Hold legend og prikkefarger i sync (én kilde: CSS-variabler)
+(function syncControlPointColorsFromCss() {
+  var wheel = getCssVar('--cp-wheel', controlPoints.rearWheelTop.color);
+  var steering = getCssVar('--cp-steering', controlPoints.steeringHeadTop.color);
+  var rake = getCssVar('--cp-rake', controlPoints.rakeHandle.color);
+  var frameTop = getCssVar('--cp-frame-top', controlPoints.frameTopEnd.color);
+  var frameBottom = getCssVar('--cp-frame-bottom', controlPoints.frameLowerStart.color);
+  var frameAngle = getCssVar('--cp-frame-angle', controlPoints.frameLowerAngle.color);
+  var fork = getCssVar('--cp-fork', controlPoints.tripleClampTop.color);
+  var image = getCssVar('--cp-image', controlPoints.motorImage.color);
+
+  controlPoints.rearWheelTop.color = wheel;
+  controlPoints.frontWheelTop.color = wheel;
+
+  controlPoints.steeringHeadTop.color = steering;
+  controlPoints.steeringHeadBottom.color = steering;
+
+  controlPoints.rakeHandle.color = rake;
+
+  controlPoints.frameTopEnd.color = frameTop;
+
+  controlPoints.frameLowerStart.color = frameBottom;
+  controlPoints.frameLowerMid.color = frameBottom;
+  controlPoints.frameLowerEnd.color = frameBottom;
+
+  controlPoints.frameLowerAngle.color = frameAngle;
+
+  controlPoints.tripleClampTop.color = fork;
+  controlPoints.forkBottom.color = fork;
+
+  controlPoints.motorImage.color = image;
+  controlPoints.tankImage.color = image;
+})();
 
 // Last draggable elementer i localStorage
 function saveElementPositions() {
@@ -748,6 +812,39 @@ function setupCanvasEventListeners() {
       }
     }
   });
+
+  // Scroll-hjul for å resize motor og tank
+  canvas.addEventListener('wheel', function(e) {
+    if (!editMode) return;
+
+    var rect = canvas.getBoundingClientRect();
+    var mx = e.clientX - rect.left;
+    var my = e.clientY - rect.top;
+
+    // Sjekk om vi er over motor eller tank
+    var zoom = parseFloat(String(document.form1.zoom.value).replace(',', '.')) || 3;
+
+    for (var key in controlPoints) {
+      var p = controlPoints[key];
+      if (p.type === 'image' && p.imageKey) {
+        var img = draggableElements[p.imageKey];
+        var imgW = img.width * zoom * img.scale;
+        var imgH = img.height * zoom * img.scale;
+
+        if (mx >= img.x && mx <= img.x + imgW && my >= img.y && my <= img.y + imgH) {
+          e.preventDefault();
+
+          // Endre scale med scroll
+          var delta = e.deltaY > 0 ? -0.1 : 0.1;
+          img.scale = Math.max(0.2, Math.min(3, img.scale + delta));
+
+          saveElementPositions();
+          calculate(0);
+          return;
+        }
+      }
+    }
+  }, { passive: false });
 }
 
 // Sett opp mousedown på hele dokumentet for bedre responsivitet
@@ -866,39 +963,6 @@ document.addEventListener('mouseup', function(e) {
       var highlighted = document.querySelectorAll('.highlight-field');
       highlighted.forEach(function(el) { el.classList.remove('highlight-field'); });
     }, 500);
-  }
-});
-
-// Scroll-hjul for å resize motor og tank
-canvas.addEventListener('wheel', function(e) {
-  if (!editMode) return;
-  
-  var rect = canvas.getBoundingClientRect();
-  var mx = e.clientX - rect.left;
-  var my = e.clientY - rect.top;
-  
-  // Sjekk om vi er over motor eller tank
-  var zoom = parseFloat(document.form1.zoom.value) || 3;
-  
-  for (var key in controlPoints) {
-    var p = controlPoints[key];
-    if (p.type === 'image' && p.imageKey) {
-      var img = draggableElements[p.imageKey];
-      var imgW = img.width * zoom * img.scale;
-      var imgH = img.height * zoom * img.scale;
-      
-      if (mx >= img.x && mx <= img.x + imgW && my >= img.y && my <= img.y + imgH) {
-        e.preventDefault();
-        
-        // Endre scale med scroll
-        var delta = e.deltaY > 0 ? -0.1 : 0.1;
-        img.scale = Math.max(0.2, Math.min(3, img.scale + delta));
-        
-        saveElementPositions();
-        calculate(0);
-        return;
-      }
-    }
   }
 });
 
