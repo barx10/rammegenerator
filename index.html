@@ -26,6 +26,7 @@
   --cp-frame-angle: #c0392b;
   --cp-fork: #e67e22;
   --cp-image: #f39c12;
+  --cp-rotation: #8e44ad;
 }
 
 body {
@@ -291,6 +292,7 @@ hr {
 .legend-dot[data-color="wheel"] { background: var(--cp-wheel); }
 .legend-dot[data-color="steering"] { background: var(--cp-steering); }
 .legend-dot[data-color="rake"] { background: var(--cp-rake); }
+.legend-dot[data-color="rotation"] { background: var(--cp-rotation); }
 .legend-dot[data-color="frameTop"] { background: var(--cp-frame-top); }
 .legend-dot[data-color="frameBottom"] { background: var(--cp-frame-bottom); }
 .legend-dot[data-color="frameAngle"] { background: var(--cp-frame-angle); }
@@ -361,52 +363,6 @@ hr {
 
 .draggable-overlay:hover {
   background: rgba(255,107,0,0.2);
-}
-
-/* Lock toggle */
-.lock-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.lock-toggle input {
-  display: none;
-}
-
-.lock-slider {
-  width: 40px;
-  height: 22px;
-  background: #ccc;
-  border-radius: 11px;
-  position: relative;
-  transition: background 0.3s;
-}
-
-.lock-slider::after {
-  content: '';
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  background: white;
-  border-radius: 50%;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.3s;
-}
-
-.lock-toggle input:checked + .lock-slider {
-  background: var(--accent);
-}
-
-.lock-toggle input:checked + .lock-slider::after {
-  transform: translateX(18px);
-}
-
-.lock-label {
-  font-size: 0.85rem;
-  color: var(--text-dark);
 }
 
 /* Footer / Kontakt */
@@ -545,16 +501,6 @@ hr {
     <td data-no="Nedre ramme vinkel" data-en="Lower frame angle">Nedre ramme vinkel</td>
     <td><input id="alarunkoAngle" type="text" name="alarunkoAngle" value="0" onkeyup="calculate(0);"> <span class="unit">°</span></td>
   </tr>
-  <tr>
-    <td colspan="2" data-no="Lås ramme (roter)" data-en="Lock frame (rotate)">Lås ramme (roter)</td>
-    <td colspan="2">
-      <label class="lock-toggle">
-        <input type="checkbox" id="lockFrame" onchange="toggleFrameLock()">
-        <span class="lock-slider"></span>
-        <span class="lock-label" data-no="Av" data-en="Off" id="lockLabel">Av</span>
-      </label>
-    </td>
-  </tr>
   <tr><td colspan="4"><hr></td></tr>
   <tr class="results-row">
     <td data-no="Trail" data-en="Trail">Trail</td>
@@ -583,6 +529,7 @@ hr {
   <div class="legend-item"><span class="legend-dot" data-color="wheel"></span><span data-no="Hjul diameter" data-en="Wheel diameter">Hjul diameter</span></div>
   <div class="legend-item"><span class="legend-dot" data-color="steering"></span><span data-no="Styrerør" data-en="Steering head">Styrerør</span></div>
   <div class="legend-item"><span class="legend-dot" data-color="rake"></span><span data-no="Rake vinkel" data-en="Rake angle">Rake vinkel</span></div>
+  <div class="legend-item"><span class="legend-dot" data-color="rotation"></span><span data-no="Rammerotasjon" data-en="Frame rotation">Rammerotasjon</span></div>
   <div class="legend-item"><span class="legend-dot" data-color="frameTop"></span><span data-no="Ramme topp" data-en="Frame top">Ramme topp</span></div>
   <div class="legend-item"><span class="legend-dot" data-color="frameBottom"></span><span data-no="Ramme bunn" data-en="Frame bottom">Ramme bunn</span></div>
   <div class="legend-item"><span class="legend-dot" data-color="frameAngle"></span><span data-no="Ramme vinkel" data-en="Frame angle">Ramme vinkel</span></div>
@@ -621,29 +568,6 @@ var stored_ALOffset = 10;
 var stored_TKOffset = 5;
 var stored_RAKEtk_T = 6;
 
-// Ramme-lås state for rotasjon rundt bakhjul
-var frameLocked = false;
-var lockPivot = { x: 0, y: 0 }; // Bakhjul-senter i pixels
-
-function toggleFrameLock() {
-  frameLocked = document.getElementById('lockFrame').checked;
-  var label = document.getElementById('lockLabel');
-  if (frameLocked) {
-    label.textContent = currentLang === 'no' ? 'På' : 'On';
-    // Lagre pivot-punkt (bakhjul-senter)
-    var zoom = parseFloat(String(document.form1.zoom.value).replace(',', '.')) || 3;
-    var Rt = (parseFloat(String(document.form1.Rt.value).replace(',', '.')) || 26) * 2.54 / 2;
-    var Yep = parseFloat(String(document.form1.Yep.value).replace(',', '.')) || 88;
-    var nollakohtaX = 20;
-    var nollakohtaY = parseInt((Yep - Rt - Rt + 60) * zoom);
-    if (document.form1.details.value == 1) nollakohtaY = nollakohtaY + 50 * zoom;
-    lockPivot.x = nollakohtaX + Rt * zoom;
-    lockPivot.y = nollakohtaY + Rt * zoom;
-  } else {
-    label.textContent = currentLang === 'no' ? 'Av' : 'Off';
-  }
-}
-
 // Interaktiv editor state - alltid aktiv
 var editMode = true;
 var draggableElements = {
@@ -681,6 +605,9 @@ var controlPoints = {
   // Gaffel/T-stykke hjørner
   tripleClampTop: { x: 0, y: 0, dragging: false, label: 'T-stykke offset', field: 'TKOffset', color: '#e67e22', cursor: 'move' },
   forkBottom: { x: 0, y: 0, dragging: false, label: 'Gaffellengde', field: 'k', color: '#e67e22', cursor: 'move' },
+
+  // Rammerotasjon (eget punkt for å rotere hele ramma)
+  frameRotation: { x: 0, y: 0, dragging: false, label: 'Rammerotasjon', field: 'RAKEep', color: '#8e44ad', cursor: 'ns-resize' },
 
   // Motor og tank (draggbare bilder)
   motorImage: { x: 0, y: 0, dragging: false, label: 'Motor', type: 'image', imageKey: 'motor', color: '#f39c12', cursor: 'move' },
@@ -728,6 +655,9 @@ function getCssVar(name, fallback) {
 
   controlPoints.tripleClampTop.color = fork;
   controlPoints.forkBottom.color = fork;
+
+  var rotation = getCssVar('--cp-rotation', controlPoints.frameRotation.color);
+  controlPoints.frameRotation.color = rotation;
 
   controlPoints.motorImage.color = image;
   controlPoints.tankImage.color = image;
@@ -1163,29 +1093,6 @@ function updateValuesFromGeometry(pointId, point) {
   var rearCenterX = nollakohtaX + Rt * zoom;
   var rearCenterY = nollakohtaY + Rt * zoom;
 
-  // RAMME LÅST: Roter hele ramma rundt bakhjul-senter (kun endre rake)
-  if (frameLocked && pointId !== 'rearWheelTop' && pointId !== 'frontWheelTop' && 
-      pointId !== 'motorImage' && pointId !== 'tankImage') {
-    // Beregn vinkel fra bakhjul-senter til musepeker
-    // dx = horisontal avstand, dy = vertikal avstand (positiv = oppover)
-    var dx = point.x - rearCenterX;
-    var dy = rearCenterY - point.y; // Y er invertert i canvas
-    
-    // Beregn vinkel - 0 grader er horisontalt, positiv er oppover
-    // Rake er vinkelen fra vertikalen, så vi konverterer
-    var angleFromHorizontal = Math.atan2(dy, dx) * (180 / Math.PI);
-    // Rake = 90 - vinkel fra horisontal (når vi ser på styrerøret)
-    // Men for enkel rotasjon: dra oppover = mindre rake, nedover = mer rake
-    var newRake = 90 - angleFromHorizontal;
-    
-    // Begrens til fornuftige verdier (15-70 grader)
-    if (newRake >= 15 && newRake <= 70) {
-      document.form1.RAKEep.value = twoDecimals(newRake);
-      highlightField('RAKEep');
-    }
-    return;
-  }
-
   var steeringHeadX = nollakohtaX + Rt * zoom + RunkoL * zoom;
   var steeringHeadY = nollakohtaY + Rt * zoom + Rt * zoom - Yep * zoom;
 
@@ -1328,6 +1235,22 @@ function updateValuesFromGeometry(pointId, point) {
     if (newAngle >= -20 && newAngle <= 20) {
       document.form1.alarunkoAngle.value = twoDecimals(newAngle);
       highlightField('alarunkoAngle');
+    }
+  } else if (pointId === 'frameRotation') {
+    // Rammerotasjon - dra opp/ned for å endre rake
+    // Beregn vinkel fra bakhjul-senter til musepeker
+    var dx = point.x - rearCenterX;
+    var dy = rearCenterY - point.y; // Y er invertert i canvas
+    
+    // Beregn vinkel fra horisontal
+    var angleFromHorizontal = Math.atan2(dy, dx) * (180 / Math.PI);
+    // Konverter til rake (90 - vinkel)
+    var newRake = 90 - angleFromHorizontal;
+    
+    // Begrens til fornuftige verdier (15-70 grader)
+    if (newRake >= 15 && newRake <= 70) {
+      document.form1.RAKEep.value = twoDecimals(newRake);
+      highlightField('RAKEep');
     }
   }
 }
@@ -1693,6 +1616,12 @@ function calculate(laskentatapa)
 		// Gaffel bunn (ved hjulaksel)
 		controlPoints.forkBottom.x = nollakohtaX + Rt + RunkoL + Xtk + Xk;
 		controlPoints.forkBottom.y = nollakohtaY + Rt + Rt - Yep - Ytk + Yk;
+
+		// Rammerotasjon-punkt (plassert på midten av øvre ramme, lett tilgjengelig)
+		// Ligger på en linje fra bakhjul-senter utover
+		var rotHandleLen = RunkoL * 0.6; // 60% av rammelengden
+		controlPoints.frameRotation.x = nollakohtaX + Rt + rotHandleLen;
+		controlPoints.frameRotation.y = nollakohtaY + Rt - 30; // Litt over bakhjul-senter
 	}
 	
 if (document.form1.details.value == 1)	{
