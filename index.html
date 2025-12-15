@@ -484,38 +484,42 @@ function hideEditOverlays() {
   calculate(0);
 }
 
-// Global mouse handlers
-var canvas = document.getElementById('cnv');
+// Global mouse handlers - settes opp etter at canvas er opprettet
+function setupCanvasEventListeners() {
+  var canvas = document.getElementById('cnv');
+  if (!canvas) return;
 
-canvas.addEventListener('mousedown', function(e) {
-  if (!editMode) return;
-  
-  var rect = canvas.getBoundingClientRect();
-  var mx = e.clientX - rect.left;
-  var my = e.clientY - rect.top;
-  
-  // Sjekk om vi klikket på et kontrollpunkt
-  var hitRadius = 12;
-  for (var key in controlPoints) {
-    var p = controlPoints[key];
-    var dx = mx - p.x;
-    var dy = my - p.y;
-    if (Math.sqrt(dx*dx + dy*dy) < hitRadius) {
-      draggedPoint = key;
-      return;
+  canvas.addEventListener('mousedown', function(e) {
+    if (!editMode) return;
+
+    var rect = canvas.getBoundingClientRect();
+    var mx = e.clientX - rect.left;
+    var my = e.clientY - rect.top;
+
+    // Sjekk om vi klikket på et kontrollpunkt
+    var hitRadius = 12;
+    for (var key in controlPoints) {
+      var p = controlPoints[key];
+      var dx = mx - p.x;
+      var dy = my - p.y;
+      if (Math.sqrt(dx*dx + dy*dy) < hitRadius) {
+        draggedPoint = key;
+        return;
+      }
     }
-  }
-});
+  });
+}
 
 document.addEventListener('mousemove', function(e) {
   if (!editMode || !draggedPoint) return;
-  
+
   var canvas = document.getElementById('cnv');
+  if (!canvas) return;
   var rect = canvas.getBoundingClientRect();
   var point = controlPoints[draggedPoint];
   point.x = e.clientX - rect.left;
   point.y = e.clientY - rect.top;
-  
+
   updateValuesFromGeometry(draggedPoint, point);
   calculate(0);
 });
@@ -686,6 +690,7 @@ function setLang(lang) {
 }
 
 calculate(1);
+setupCanvasEventListeners();
 
 function keulavaihdos()
 {
